@@ -131,7 +131,6 @@
     OneDriveClient.prototype.closeFile = function(filePath, openRequestId, successCallback, errorCallback) {
         var writeRequest = this.writeRequestMap[openRequestId];
         if (writeRequest && writeRequest.mode === "WRITE") {
-            var filePath = writeRequest.filePath;
             var localFileName = writeRequest.localFileName;
             var errorHandler = function(error) {
                 console.log("writeFile failed");
@@ -139,7 +138,7 @@
                 errorCallback("FAILED");
             }.bind(this);
             window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
-            window.requestFileSystem(TEMPORARY, 100 * 1024 * 1024, function(fs) {
+            window.requestFileSystem(window.TEMPORARY, 100 * 1024 * 1024, function(fs) {
                 fs.root.getFile(localFileName, {}, function(fileEntry) {
                     fileEntry.file(function(file) {
                         var totalSize = file.size;
@@ -316,7 +315,7 @@
             errorCallback("FAILED");
         }.bind(this);
         window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
-        window.requestFileSystem(TEMPORARY, 100 * 1024 * 1024, function(fs) {
+        window.requestFileSystem(window.TEMPORARY, 100 * 1024 * 1024, function(fs) {
             fs.root.getFile(localFileName, {create: true, exclusive: false}, function(fileEntry) {
                 fileEntry.createWriter(function(fileWriter) {
                     fileWriter.onwriteend = function(e) {
