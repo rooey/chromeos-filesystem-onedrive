@@ -11,7 +11,8 @@
     "storage",
     "notifications",
     "https://api.onedrive.com/",
-    "http://*.files.1drv.com/"
+    "https://*.files.1drv.com/",
+    "https://*.up.1drv.com/"
   ],
   "app": {
     "background": {
