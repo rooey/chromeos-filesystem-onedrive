@@ -62,23 +62,11 @@
 
     OneDriveClient.prototype.unauthorize = function(successCallback, errorCallback) {
         if (this.access_token_) {
-            $.ajax({
-                type: "POST",
-                url: "https://api.dropbox.com/1/disable_access_token",
-                headers: {
-                    "Authorization": "Bearer " + this.access_token_
-                },
-                dataType: "json"
-            }).done(function(result) {
-                chrome.identity.removeCachedAuthToken({
-                    token: this.access_token_
-                }, function() {
-                    this.access_token_ = null;
-                    successCallback();
-                }.bind(this));
-            }.bind(this)).fail(function(error) {
-                console.log(error);
-                errorCallback(error);
+            chrome.identity.removeCachedAuthToken({
+                token: this.access_token_
+            }, function() {
+                this.access_token_ = null;
+                successCallback();
             }.bind(this));
         } else {
             errorCallback("Not authorized");
@@ -143,26 +131,33 @@
     OneDriveClient.prototype.closeFile = function(filePath, openRequestId, successCallback, errorCallback) {
         var writeRequest = this.writeRequestMap[openRequestId];
         if (writeRequest && writeRequest.mode === "WRITE") {
-            var uploadId = writeRequest.uploadId;
-            if (uploadId) {
-                $.ajax({
-                    type: "POST",
-                    url: "https://api-content.dropbox.com/1/commit_chunked_upload/auto" + filePath,
-                    data: {
-                        "upload_id": uploadId
-                    },
-                    headers: {
-                        "Authorization": "Bearer " + this.access_token_
-                    },
-                    dataType: "json"
-                }).done(function(result) {
-                    successCallback();
-                }.bind(this)).fail(function(error) {
-                    handleError.call(this, error, successCallback, errorCallback);
-                }.bind(this));
-            } else {
-                successCallback();
-            }
+            var filePath = writeRequest.filePath;
+            var localFileName = writeRequest.localFileName;
+            var errorHandler = function(error) {
+                console.log("writeFile failed");
+                console.log(error);
+                errorCallback("FAILED");
+            }.bind(this);
+            window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+            window.requestFileSystem(TEMPORARY, 100 * 1024 * 1024, function(fs) {
+                fs.root.getFile(localFileName, {}, function(fileEntry) {
+                    fileEntry.file(function(file) {
+                        var totalSize = file.size;
+                        var reader = new FileReader();
+                        reader.addEventListener("loadend", function() {
+                            sendSimpleUpload.call(this, {
+                                filePath: filePath,
+                                data: reader.result
+                            }, function() {
+                                fileEntry.remove(function() {
+                                    successCallback();
+                                }.bind(this), errorHandler);
+                            }.bind(this), errorCallback);
+                        }.bind(this));
+                        reader.readAsArrayBuffer(file);
+                    }.bind(this));
+                }.bind(this), errorHandler);
+            }.bind(this), errorHandler);
         } else {
             successCallback();
         }
@@ -312,18 +307,30 @@
 
     OneDriveClient.prototype.writeFile = function(filePath, data, offset, openRequestId, successCallback, errorCallback) {
         var writeRequest = this.writeRequestMap[openRequestId];
-        var uploadId = writeRequest.uploadId || null;
-        var req = {
-            filePath: filePath,
-            data: data,
-            offset: offset,
-            sentBytes: 0,
-            uploadId: uploadId,
-            hasMore: true,
-            needCommit: false,
-            openRequestId: openRequestId
-        };
-        sendContents.call(this, req, successCallback, errorCallback);
+        writeRequest.filePath = filePath;
+        var localFileName = String(openRequestId);
+        writeRequest.localFileName = localFileName;
+        var errorHandler = function(error) {
+            console.log("writeFile failed");
+            console.log(error);
+            errorCallback("FAILED");
+        }.bind(this);
+        window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+        window.requestFileSystem(TEMPORARY, 100 * 1024 * 1024, function(fs) {
+            fs.root.getFile(localFileName, {create: true, exclusive: false}, function(fileEntry) {
+                fileEntry.createWriter(function(fileWriter) {
+                    fileWriter.onwriteend = function(e) {
+                        successCallback();
+                    }.bind(this);
+                    fileWriter.onerror = errorHandler;
+                    fileWriter.seek(offset);
+                    var blob = new Blob([data]);
+                    fileWriter.write(blob);
+                }.bind(this), errorHandler);
+            }.bind(this),
+            errorHandler);
+        }.bind(this),
+        errorHandler);
     };
 
     OneDriveClient.prototype.truncate = function(filePath, length, successCallback, errorCallback) {
@@ -340,12 +347,7 @@
                 // Truncate
                 var req = {
                     filePath: filePath,
-                    data: data.slice(0, length),
-                    offset: 0,
-                    sentBytes: 0,
-                    uploadId: null,
-                    hasMore: true,
-                    openRequestId: null
+                    data: data.slice(0, length)
                 };
                 // createUploadSession.call(this, req, successCallback, errorCallback);
                 sendSimpleUpload.call(this, req, successCallback, errorCallback);
@@ -357,12 +359,7 @@
                 reader.addEventListener("loadend", function() {
                     var req = {
                         filePath: filePath,
-                        data: reader.result,
-                        offset: 0,
-                        sentBytes: 0,
-                        uploadId: null,
-                        hasMore: true,
-                        openRequestId: null
+                        data: reader.result
                     };
                     // createUploadSession.call(this, req, successCallback, errorCallback);
                     sendSimpleUpload.call(this, req, successCallback, errorCallback);
@@ -553,34 +550,6 @@
                 };
             }
         });
-    };
-
-    var getNameFromPath = function(path) {
-        var names = path.split("/");
-        var name = names[names.length - 1];
-        return name;
-    };
-
-    var fetchThumbnail = function(path, successCallback, errorCallback) {
-        console.log("fetchThumbnail");
-        $.ajax({
-            type: "GET",
-            url: "https://api-content.dropbox.com/1/thumbnails/auto" + path + "?format=png&size=s",
-            headers: {
-                "Authorization": "Bearer " + this.access_token_
-            },
-            dataType: "binary",
-            responseType: "arraybuffer"
-        }).done(function(image) {
-            var fileReader = new FileReader();
-            var blob = new Blob([image], {type: "image/png"});
-            fileReader.onload = function(e) {
-                successCallback(e.target.result);
-            };
-            fileReader.readAsDataURL(blob);
-        }.bind(this)).fail(function(error) {
-            handleError.call(this, error, successCallback, errorCallback);
-        }.bind(this));
     };
 
     // Export

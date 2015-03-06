@@ -201,15 +201,15 @@
     };
 
     OneDriveFS.prototype.doUnmount = function(successCallback) {
-        var unmount = function() {
+        var unmount = function(callback) {
             chrome.fileSystemProvider.unmount({
                 fileSystemId: FILE_SYSTEM_ID
             }, function() {
                 chrome.storage.local.remove("accessToken", function() {
-                    successCallback();
-                });
+                    callback();
+                }.bind(this));
             }.bind(this));
-        };
+        }.bind(this);
         this.onedrive_client_.unauthorize(function() {
             unmount(successCallback);
         }.bind(this), function(reason) {
