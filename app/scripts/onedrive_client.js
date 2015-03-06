@@ -4,8 +4,8 @@
 
     // Private fields
 
-    var AUTH_URL = "https://www.dropbox.com/1/oauth2/authorize" +
-            "?response_type=token&client_id=u4emlzpeiilp7n0" +
+    var AUTH_URL = "https://login.live.com/oauth20_authorize.srf?" +
+            "client_id=000000004C142702&scope=onedrive.readwrite&response_type=token" +
             "&redirect_uri=" + chrome.identity.getRedirectURL("");
 
     var CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
@@ -85,65 +85,51 @@
         }
     };
 
-    OneDriveClient.prototype.getMetadata = function(path, needThumbnail, successCallback, errorCallback) {
+    OneDriveClient.prototype.getMetadata = function(path, successCallback, errorCallback) {
+        var url = "https://api.onedrive.com/v1.0/drive/root";
+        if (path !== "/") {
+            url += ":" + path;
+        }
         $.ajax({
             type: "GET",
-            url: "https://api.dropbox.com/1/metadata/auto" + path + "?list=false",
+            url: url,
             headers: {
                 "Authorization": "Bearer " + this.access_token_
             },
             dataType: "json"
         }).done(function(result) {
-            if (result.is_deleted) {
-                errorCallback("NOT_FOUND");
-            } else {
-                if (needThumbnail && result.thumb_exists) {
-                    fetchThumbnail.call(this, path, function(thumbnail) {
-                        var entryMetadata = {
-                            isDirectory: result.is_dir,
-                            name: getNameFromPath.call(this, result.path),
-                            size: result.bytes,
-                            modificationTime: result.modified ? new Date(result.modified) : new Date(),
-                            thumbnail: thumbnail
-                        };
-                        if (!result.is_dir) {
-                            entryMetadata.mimeType = result.mime_type;
-                        }
-                        successCallback(entryMetadata);
-                    }.bind(this), errorCallback);
-                } else {
-                    var entryMetadata = {
-                        isDirectory: result.is_dir,
-                        name: getNameFromPath.call(this, result.path),
-                        size: result.bytes,
-                        modificationTime: result.modified ? new Date(result.modified) : new Date()
-                    };
-                    if (!result.is_dir) {
-                        entryMetadata.mimeType = result.mime_type;
-                    }
-                    successCallback(entryMetadata);
-                }
+            console.log(result);
+            var entryMetadata = {
+                isDirectory: isDirectoryEntry.call(this, result),
+                name: normalizeName.call(this, result.name),
+                size: result.size,
+                modificationTime: new Date(result.lastModifiedDateTime)
+            };
+            if (!isDirectoryEntry.call(this, result)) {
+                entryMetadata.mimeType = result.mime_type;
             }
+            successCallback(entryMetadata);
         }.bind(this)).fail(function(error) {
             handleError.call(this, error, successCallback, errorCallback);
         }.bind(this));
     };
 
     OneDriveClient.prototype.readDirectory = function(path, successCallback, errorCallback) {
+        var url = "https://api.onedrive.com/v1.0/drive/root";
+        if (path !== "/") {
+            url += ":" + path + ":";
+        }
         $.ajax({
             type: "GET",
-            url: "https://api.dropbox.com/1/metadata/auto" + path + "?list=true&include_deleted=false",
+            url: url + "/children",
             headers: {
                 "Authorization": "Bearer " + this.access_token_
             },
             dataType: "json"
         }).done(function(result) {
-            if (result.is_deleted) {
-                errorCallback("NOT_FOUND");
-            } else {
-                var contents = result.contents;
-                createEntryMetadatas.call(this, contents, 0, [], false, successCallback, errorCallback);
-            }
+            console.log(result);
+            var contents = result.value;
+            createEntryMetadatas.call(this, contents, 0, [], successCallback, errorCallback);
         }.bind(this));
     };
 
@@ -185,7 +171,7 @@
     OneDriveClient.prototype.readFile = function(filePath, offset, length, successCallback, errorCallback) {
         $.ajax({
             type: "GET",
-            url: "https://api-content.dropbox.com/1/files/auto" + filePath,
+            url: "https://api.onedrive.com/v1.0/drive/root:" + filePath + ":/content",
             headers: {
                 "Authorization": "Bearer " + this.access_token_,
                 "Range": "bytes=" + offset + "-" + (offset + length - 1)
@@ -201,16 +187,24 @@
     };
 
     OneDriveClient.prototype.createDirectory = function(directoryPath, successCallback, errorCallback) {
+        var lastSlashPos = directoryPath.lastIndexOf("/");
+        var parent = directoryPath.substring(0, lastSlashPos);
+        var name = directoryPath.substring(lastSlashPos + 1);
+        var url = "https://api.onedrive.com/v1.0/drive/root";
+        if (parent !== "") {
+            url += ":" + parent + ":";
+        }
         $.ajax({
             type: "POST",
-            url: "https://api.dropbox.com/1/fileops/create_folder",
+            url: url + "/children",
             headers: {
-                "Authorization": "Bearer " + this.access_token_
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/json"
             },
-            data: {
-                root: "auto",
-                path: directoryPath
-            },
+            data: JSON.stringify({
+                name: name,
+                folder: {}
+            }),
             dataType: "json"
         }).done(function(result) {
             successCallback();
@@ -221,14 +215,10 @@
 
     OneDriveClient.prototype.deleteEntry = function(entryPath, successCallback, errorCallback) {
         $.ajax({
-            type: "POST",
-            url: "https://api.dropbox.com/1/fileops/delete",
+            type: "DELETE",
+            url: "https://api.onedrive.com/v1.0/drive/root:" + entryPath,
             headers: {
                 "Authorization": "Bearer " + this.access_token_
-            },
-            data: {
-                root: "auto",
-                path: entryPath
             },
             dataType: "json"
         }).done(function(result) {
@@ -239,17 +229,29 @@
     };
 
     OneDriveClient.prototype.moveEntry = function(sourcePath, targetPath, successCallback, errorCallback) {
+        var sourceLastSlashPos = sourcePath.lastIndexOf("/");
+        var sourceDir = sourcePath.substring(0, sourceLastSlashPos);
+        var sourceName = sourcePath.substring(sourceLastSlashPos + 1);
+        var targetLastSlashPos = targetPath.lastIndexOf("/");
+        var targetDir = targetPath.substring(0, targetLastSlashPos);
+        var targetName = targetPath.substring(targetLastSlashPos + 1);
+        var data = {};
+        if (sourceName !== targetName) {
+            data.name = targetName;
+        }
+        if (sourceDir !== targetDir) {
+            data.parentReference = {
+                path: "/drive/root:" + targetDir
+            };
+        }
         $.ajax({
-            type: "POST",
-            url: "https://api.dropbox.com/1/fileops/move",
+            type: "PATCH",
+            url: "https://api.onedrive.com/v1.0/drive/root:" + sourcePath,
             headers: {
-                "Authorization": "Bearer " + this.access_token_
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/json"
             },
-            data: {
-                root: "auto",
-                from_path: sourcePath,
-                to_path: targetPath
-            },
+            data: JSON.stringify(data),
             dataType: "json"
         }).done(function(result) {
             successCallback();
@@ -259,31 +261,44 @@
     };
 
     OneDriveClient.prototype.copyEntry = function(sourcePath, targetPath, successCallback, errorCallback) {
+        var sourceLastSlashPos = sourcePath.lastIndexOf("/");
+        var sourceDir = sourcePath.substring(0, sourceLastSlashPos);
+        var targetLastSlashPos = targetPath.lastIndexOf("/");
+        var targetDir = targetPath.substring(0, targetLastSlashPos);
+        var data = {};
+        if (sourceDir !== targetDir) {
+            data.parentReference = {
+                path: "/drive/root:" + targetDir
+            };
+        }
         $.ajax({
             type: "POST",
-            url: "https://api.dropbox.com/1/fileops/copy",
+            url: "https://api.onedrive.com/v1.0/drive/root:" + sourcePath + ":/action.copy",
             headers: {
-                "Authorization": "Bearer " + this.access_token_
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/json",
+                "Prefer": "respond-async"
             },
-            data: {
-                root: "auto",
-                from_path: sourcePath,
-                to_path: targetPath
-            },
+            data: JSON.stringify(data),
             dataType: "json"
         }).done(function(result) {
             successCallback();
         }.bind(this)).fail(function(error) {
-            handleError.call(this, error, successCallback, errorCallback);
+            if (error.status === 202) {
+                successCallback();
+            } else {
+                handleError.call(this, error, successCallback, errorCallback);
+            }
         }.bind(this));
     };
 
     OneDriveClient.prototype.createFile = function(filePath, successCallback, errorCallback) {
         $.ajax({
             type: "PUT",
-            url: "https://api-content.dropbox.com/1/files_put/auto" + filePath,
+            url: "https://api.onedrive.com/v1.0/drive/root:" + filePath + ":/content",
             headers: {
-                "Authorization": "Bearer " + this.access_token_
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/octet-stream"
             },
             processData: false,
             data: new ArrayBuffer(),
@@ -314,7 +329,7 @@
     OneDriveClient.prototype.truncate = function(filePath, length, successCallback, errorCallback) {
         $.ajax({
             type: "GET",
-            url: "https://api-content.dropbox.com/1/files/auto" + filePath,
+            url: "https://api.onedrive.com/v1.0/drive/root:" + filePath + ":/content",
             headers: {
                 "Authorization": "Bearer " + this.access_token_
             },
@@ -330,10 +345,10 @@
                     sentBytes: 0,
                     uploadId: null,
                     hasMore: true,
-                    needCommit: true,
                     openRequestId: null
                 };
-                sendContents.call(this, req, successCallback, errorCallback);
+                // createUploadSession.call(this, req, successCallback, errorCallback);
+                sendSimpleUpload.call(this, req, successCallback, errorCallback);
             } else {
                 // Pad with null bytes.
                 var diff = length - data.byteLength;
@@ -347,10 +362,10 @@
                         sentBytes: 0,
                         uploadId: null,
                         hasMore: true,
-                        needCommit: true,
                         openRequestId: null
                     };
-                    sendContents.call(this, req, successCallback, errorCallback);
+                    // createUploadSession.call(this, req, successCallback, errorCallback);
+                    sendSimpleUpload.call(this, req, successCallback, errorCallback);
                 }.bind(this));
                 reader.readAsArrayBuffer(blob);
             }
@@ -374,7 +389,7 @@
                 errorCallback("INVALID_OPERATION");
                 chrome.notifications.create("", {
                     type: "basic",
-                    title: "Dropbox File System",
+                    title: "File System for OneDrive",
                     message: "The access token has been expired. File system unmounted.",
                     iconUrl: "icons/48.png"
                 }, function(notificationId) {
@@ -385,47 +400,69 @@
         }
     };
 
+    var sendSimpleUpload = function(options, successCallback, errorCallback) {
+        $.ajax({
+            type: "PUT",
+            url: "https://api.onedrive.com/v1.0/drive/root:" + options.filePath + ":/content",
+            dataType: "json",
+            headers: {
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/octet-stream"
+            },
+            processData: false,
+            data: options.data
+        }).done(function(result) {
+            console.log(result);
+            successCallback();
+        }.bind(this)).fail(function(error) {
+            handleError.call(this, error, successCallback, errorCallback);
+        }.bind(this));
+    };
+
+/*
+    var createUploadSession = function(options, successCallback, errorCallback) {
+        $.ajax({
+            type: "POST",
+            url: "https://api.onedrive.com/v1.0/drive/root:" + options.filePath + ":/upload.createSession",
+            headers: {
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/json"
+            },
+            data: JSON.stringify({
+                "@name.conflictBehavior": "replace"
+            }),
+            dataType: "json"
+        }).done(function(data) {
+            console.log(data);
+            options.uploadUrl = data.uploadUrl;
+            sendContents.call(this, options, successCallback, errorCallback);
+        }.bind(this)).fail(function(error) {
+            handleError.call(this, error, successCallback, errorCallback);
+        }.bind(this));
+    };
+
     var sendContents = function(options, successCallback, errorCallback) {
         if (!options.hasMore) {
-            if (options.needCommit) {
-                $.ajax({
-                    type: "POST",
-                    url: "https://api-content.dropbox.com/1/commit_chunked_upload/auto" + options.filePath,
-                    data: {
-                        "upload_id": options.uploadId
-                    },
-                    headers: {
-                        "Authorization": "Bearer " + this.access_token_
-                    },
-                    dataType: "json"
-                }).done(function(result) {
-                    successCallback();
-                }.bind(this)).fail(function(error) {
-                    handleError.call(this, error, successCallback, errorCallback);
-                }.bind(this));
-            } else {
-                successCallback();
-            }
+            successCallback();
         } else {
             var len = options.data.byteLength;
             var remains = len - options.sentBytes;
             var sendLength = Math.min(CHUNK_SIZE, remains);
             var more = (options.sentBytes + sendLength) < len;
             var sendBuffer = options.data.slice(options.sentBytes, sendLength);
-            var queryParam = "?offset=" + options.offset;
-            if (options.uploadId) {
-                queryParam += "&upload_id=" + options.uploadId;
-            }
             $.ajax({
                 type: "PUT",
-                url: "https://api-content.dropbox.com/1/chunked_upload" + queryParam,
+                url: options.uploadUrl,
                 dataType: "json",
                 headers: {
-                    "Authorization": "Bearer " + this.access_token_
+                    "Authorization": "Bearer " + this.access_token_,
+                    "Content-Range": "bytes " + options.offset + "-" + (options.offset + sendLength - 1) + "/" + len
+                    //"Content-Type": "application/octet-stream"
                 },
                 processData: false,
                 data: sendBuffer
             }).done(function(result) {
+                console.log(result);
                 var writeRequest = this.writeRequestMap[options.openRequestId];
                 if (writeRequest) {
                     writeRequest.uploadId = result.upload_id;
@@ -437,8 +474,8 @@
                     sentBytes: options.sendBytes + sendLength,
                     uploadId: result.upload_id,
                     hasMore: more,
-                    needCommit: options.needCommit,
-                    openRequestId: options.openRequestId
+                    openRequestId: options.openRequestId,
+                    uploadUrl: options.uploadUrl
                 };
                 sendContents.call(this, req, successCallback, errorCallback);
             }.bind(this)).fail(function(error) {
@@ -446,40 +483,42 @@
             }.bind(this));
         }
     };
+*/
 
-    var createEntryMetadatas = function(contents, index, entryMetadatas, needThumbnail, successCallback, errorCallback) {
+    var createEntryMetadatas = function(contents, index, entryMetadatas, successCallback, errorCallback) {
         if (contents.length === index) {
             successCallback(entryMetadatas);
         } else {
             var content = contents[index];
-            if (needThumbnail && content.thumb_exists) {
-                fetchThumbnail.call(this, content.path, function(thumbnail) {
-                    var entryMetadata = {
-                        isDirectory: content.is_dir,
-                        name: getNameFromPath.call(this, content.path),
-                        size: content.bytes,
-                        modificationTime: content.modified ? new Date(content.modified) : new Date(),
-                        thumbnail: thumbnail
-                    };
-                    if (!content.is_dir) {
-                        entryMetadata.mimeType = content.mime_type;
-                    }
-                    entryMetadatas.push(entryMetadata);
-                    createEntryMetadatas.call(this, contents, ++index, entryMetadatas, needThumbnail, successCallback, errorCallback);
-                }.bind(this), errorCallback);
-            } else {
-                var entryMetadata = {
-                    isDirectory: content.is_dir,
-                    name: getNameFromPath.call(this, content.path),
-                    size: content.bytes,
-                    modificationTime: new Date(content.modified)
-                };
-                if (!content.is_dir) {
-                    entryMetadata.mimeType = content.mime_type;
-                }
-                entryMetadatas.push(entryMetadata);
-                createEntryMetadatas.call(this, contents, ++index, entryMetadatas, needThumbnail, successCallback, errorCallback);
+            var entryMetadata = {
+                isDirectory: isDirectoryEntry.call(this, content),
+                name: content.name,
+                size: content.size,
+                modificationTime: new Date(content.lastModifiedDateTime)
+            };
+            if (!isDirectoryEntry.call(this, content)) {
+                entryMetadata.mimeType = content.file.mimeType;
             }
+            console.log(entryMetadata);
+            entryMetadatas.push(entryMetadata);
+            createEntryMetadatas.call(this, contents, ++index, entryMetadatas, successCallback, errorCallback);
+        }
+    };
+
+    var isDirectoryEntry = function(entry) {
+        var folder = entry.folder;
+        if (folder) {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    var normalizeName = function(name) {
+        if (name === "root") {
+            return "";
+        } else {
+            return name;
         }
     };
 

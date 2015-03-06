@@ -10,7 +10,7 @@
     // Constructor
 
     var OneDriveFS = function() {
-        this.dropbox_client_ = null;
+        this.onedrive_client_ = null;
         this.opened_files_ = {};
         this.metadata_cache_ = null;
         assignEventHandlers.call(this);
@@ -30,8 +30,8 @@
             if (mounted) {
                 errorCallback("ALREADY_MOUNTED");
             } else {
-                this.dropbox_client_ = new DropboxClient(this);
-                this.dropbox_client_.authorize(function() {
+                this.onedrive_client_ = new OneDriveClient(this);
+                this.onedrive_client_.authorize(function() {
                     chrome.fileSystemProvider.mount({
                         fileSystemId: FILE_SYSTEM_ID,
                         displayName: FILE_SYSTEM_NAME,
@@ -39,11 +39,11 @@
                     }, function() {
                         var lastError = chrome.runtime.lastError;
                         if (lastError) {
-                            this.dropbox_client_ = null;
+                            this.onedrive_client_ = null;
                             errorCallback(lastError);
                         } else {
                             var config = {
-                                accessToken: this.dropbox_client_.getAccessToken()
+                                accessToken: this.onedrive_client_.getAccessToken()
                             };
                             chrome.storage.local.set(config, function() {
                                 successCallback();
@@ -59,12 +59,12 @@
     };
 
     OneDriveFS.prototype.resume = function(successCallback, errorCallback) {
-        if (!this.dropbox_client_) {
+        if (!this.onedrive_client_) {
             chrome.storage.local.get("accessToken", function(items) {
                 var accessToken = items.accessToken;
                 if (accessToken) {
-                    this.dropbox_client_ = new DropboxClient();
-                    this.dropbox_client_.setAccessToken(accessToken);
+                    this.onedrive_client_ = new OneDriveClient();
+                    this.onedrive_client_.setAccessToken(accessToken);
                     successCallback();
                 } else {
                     errorCallback("ACCESS_TOKEN_NOT_FOUND");
@@ -81,7 +81,7 @@
 
     OneDriveFS.prototype.onReadDirectoryRequested = function(options, successCallback, errorCallback) {
         console.log("onReadDirectoryRequested");
-        this.dropbox_client_.readDirectory(options.directoryPath, function(entryMetadataList) {
+        this.onedrive_client_.readDirectory(options.directoryPath, function(entryMetadataList) {
             var cache = getMetadataCache.call(this);
             cache.put(options.directoryPath, entryMetadataList);
             successCallback(entryMetadataList, false);
@@ -91,29 +91,22 @@
     OneDriveFS.prototype.onGetMetadataRequested = function(options, successCallback, errorCallback) {
         console.log("onGetMetadataRequested: thumbnail=" + options.thumbnail);
         console.log(options);
-        if (options.thumbnail) {
-            this.dropbox_client_.getMetadata(
-                options.entryPath, true, function(entryMetadata) {
+        var metadataCache = getMetadataCache.call(this);
+        var cache = metadataCache.get(options.entryPath);
+        if (cache.directoryExists && cache.fileExists) {
+            successCallback(cache.metadata);
+        } else {
+            this.onedrive_client_.getMetadata(
+                options.entryPath, function(entryMetadata) {
                     successCallback(entryMetadata);
                 }.bind(this), errorCallback);
-        } else {
-            var metadataCache = getMetadataCache.call(this);
-            var cache = metadataCache.get(options.entryPath);
-            if (cache.directoryExists && cache.fileExists) {
-                successCallback(cache.metadata);
-            } else {
-                this.dropbox_client_.getMetadata(
-                    options.entryPath, false, function(entryMetadata) {
-                        successCallback(entryMetadata);
-                    }.bind(this), errorCallback);
-            }
         }
     };
 
     OneDriveFS.prototype.onOpenFileRequested = function(options, successCallback, errorCallback) {
         console.log("onOpenFileRequested");
         console.log(options);
-        this.dropbox_client_.openFile(options.filePath, options.requestId, options.mode, function() {
+        this.onedrive_client_.openFile(options.filePath, options.requestId, options.mode, function() {
             this.opened_files_[options.requestId] = options.filePath;
             successCallback();
         }.bind(this), errorCallback);
@@ -123,7 +116,7 @@
         console.log("onReadFileRequested - start");
         console.log(options);
         var filePath = this.opened_files_[options.openRequestId];
-        this.dropbox_client_.readFile(
+        this.onedrive_client_.readFile(
             filePath, options.offset, options.length, function(data, hasMore) {
                 successCallback(data, hasMore);
                 console.log("onReadFileRequested - end");
@@ -133,7 +126,7 @@
     OneDriveFS.prototype.onCloseFileRequested = function(options, successCallback, errorCallback) {
         console.log("onCloseFileRequested");
         var filePath = this.opened_files_[options.openRequestId];
-        this.dropbox_client_.closeFile(filePath, options.openRequestId, function() {
+        this.onedrive_client_.closeFile(filePath, options.openRequestId, function() {
             delete this.opened_files_[options.openRequestId];
             successCallback();
         }.bind(this), errorCallback);
@@ -142,7 +135,7 @@
     OneDriveFS.prototype.onCreateDirectoryRequested = function(options, successCallback, errorCallback) {
         console.log("onCreateDirectoryRequested");
         console.log(options);
-        this.dropbox_client_.createDirectory(options.directoryPath, function() {
+        this.onedrive_client_.createDirectory(options.directoryPath, function() {
             successCallback();
         }.bind(this), errorCallback);
     };
@@ -150,7 +143,7 @@
     OneDriveFS.prototype.onDeleteEntryRequested = function(options, successCallback, errorCallback) {
         console.log("onDeleteEntryRequested");
         console.log(options);
-        this.dropbox_client_.deleteEntry(options.entryPath, function() {
+        this.onedrive_client_.deleteEntry(options.entryPath, function() {
             var metadataCache = getMetadataCache.call(this);
             metadataCache.remove(options.entryPath);
             successCallback();
@@ -160,7 +153,7 @@
     OneDriveFS.prototype.onMoveEntryRequested = function(options, successCallback, errorCallback) {
         console.log("onMoveEntryRequested");
         console.log(options);
-        this.dropbox_client_.moveEntry(options.sourcePath, options.targetPath, function() {
+        this.onedrive_client_.moveEntry(options.sourcePath, options.targetPath, function() {
             var metadataCache = getMetadataCache.call(this);
             metadataCache.remove(options.sourcePath);
             metadataCache.remove(options.targetPath);
@@ -171,7 +164,7 @@
     OneDriveFS.prototype.onCopyEntryRequested = function(options, successCallback, errorCallback) {
         console.log("onCopyEntryRequested");
         console.log(options);
-        this.dropbox_client_.copyEntry(options.sourcePath, options.targetPath, function() {
+        this.onedrive_client_.copyEntry(options.sourcePath, options.targetPath, function() {
             var metadataCache = getMetadataCache.call(this);
             metadataCache.remove(options.sourcePath);
             metadataCache.remove(options.targetPath);
@@ -183,7 +176,7 @@
         console.log("onWriteFileRequested");
         console.log(options);
         var filePath = this.opened_files_[options.openRequestId];
-        this.dropbox_client_.writeFile(filePath, options.data, options.offset, options.openRequestId, function() {
+        this.onedrive_client_.writeFile(filePath, options.data, options.offset, options.openRequestId, function() {
             successCallback();
         }.bind(this), errorCallback);
     };
@@ -191,7 +184,7 @@
     OneDriveFS.prototype.onTruncateRequested = function(options, successCallback, errorCallback) {
         console.log("onTruncateRequested");
         console.log(options);
-        this.dropbox_client_.truncate(options.filePath, options.length, function() {
+        this.onedrive_client_.truncate(options.filePath, options.length, function() {
             console.log("onTruncateRequested - done");
             successCallback(false);
         }.bind(this), errorCallback);
@@ -200,7 +193,7 @@
     OneDriveFS.prototype.onCreateFileRequested = function(options, successCallback, errorCallback) {
         console.log("onCreateFileRequested");
         console.log(options);
-        this.dropbox_client_.createFile(options.filePath, function() {
+        this.onedrive_client_.createFile(options.filePath, function() {
             var metadataCache = getMetadataCache.call(this);
             metadataCache.remove(options.filePath);
             successCallback();
@@ -217,7 +210,7 @@
                 });
             }.bind(this));
         };
-        this.dropbox_client_.unauthorize(function() {
+        this.onedrive_client_.unauthorize(function() {
             unmount(successCallback);
         }.bind(this), function(reason) {
             console.log(reason);
@@ -229,7 +222,7 @@
 
     var createEventHandler = function(callback) {
         return function(options, successCallback, errorCallback) {
-            if (!this.dropbox_client_) {
+            if (!this.onedrive_client_) {
                 this.resume(function() {
                     callback(options, successCallback, errorCallback);
                 }.bind(this), function(reason) {
