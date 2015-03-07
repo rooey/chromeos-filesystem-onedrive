@@ -4,8 +4,13 @@
 
     // Private fields
 
+    // For Development
+    // var CLIENT_ID = "000000004C142702";
+    // For Production
+    var CLIENT_ID = "000000004014A800";
+
     var AUTH_URL = "https://login.live.com/oauth20_authorize.srf?" +
-            "client_id=000000004C142702&scope=onedrive.readwrite&response_type=token" +
+            "client_id=" + CLIENT_ID + "&scope=onedrive.readwrite&response_type=token" +
             "&redirect_uri=" + chrome.identity.getRedirectURL("");
 
     var CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
@@ -375,11 +380,9 @@
 
     var handleError = function(error, successCallback, errorCallback) {
         console.log(error);
-        var status = error.status;
+        var status = Number(error.status);
         if (status === 404) {
             errorCallback("NOT_FOUND");
-        } else if (status === 416) {
-            successCallback(new ArrayBuffer(), false);
         } else if (status === 401) {
             // Access token has already expired or unauthorized. Unmount.
             this.onedrive_fs_.doUnmount(function() {
@@ -388,7 +391,7 @@
                     type: "basic",
                     title: "File System for OneDrive",
                     message: "The access token has been expired. File system unmounted.",
-                    iconUrl: "icons/48.png"
+                    iconUrl: "/icons/48.png"
                 }, function(notificationId) {
                 }.bind(this));
             }.bind(this));
