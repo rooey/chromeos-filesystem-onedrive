@@ -32,6 +32,7 @@
                 return;
             }
             if (redirectUrl) {
+                console.log(redirectUrl);
                 var parametersStr = redirectUrl.substring(redirectUrl.indexOf("#") + 1);
                 var parameters = parametersStr.split("&");
                 for (var i = 0; i < parameters.length; i++) {
