@@ -63,7 +63,7 @@
             chrome.storage.local.get("accessToken", function(items) {
                 var accessToken = items.accessToken;
                 if (accessToken) {
-                    this.onedrive_client_ = new OneDriveClient();
+                    this.onedrive_client_ = new OneDriveClient(this);
                     this.onedrive_client_.setAccessToken(accessToken);
                     successCallback();
                 } else {
