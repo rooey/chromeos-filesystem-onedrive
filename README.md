@@ -1,3 +1,5 @@
+[![Code Climate](https://codeclimate.com/github/yoichiro/chromeos-filesystem-onedrive/badges/gpa.svg)](https://codeclimate.com/github/yoichiro/chromeos-filesystem-onedrive)
+
 # File System for OneDrive
 
 File System for OneDrive provides you an ability to access to your OneDrive storage directly from the Files app.
