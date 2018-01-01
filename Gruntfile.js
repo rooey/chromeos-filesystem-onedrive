@@ -125,7 +125,11 @@ module.exports = function (grunt) {
                         '*.{ico,png,txt}',
                         'icons/{,*/}*.png',
                         'styles/{,*/}*.*',
-                        '_locales/{,*/}*.json'
+                        '_locales/{,*/}*.json',
+                        'scripts/{,*/}*.js',
+                        'bower_components/bootstrap/dist/{,*/}/*.*',
+                        'bower_components/jquery/dist/{,*/}/*.js',
+                        'window.html'
                     ]
                 }]
             }
@@ -218,7 +222,7 @@ module.exports = function (grunt) {
         'concat',
         'chromeManifest:dist',
         'copy',
-        'vulcanize',
+        // 'vulcanize',
         'compress'
     ]);
 
