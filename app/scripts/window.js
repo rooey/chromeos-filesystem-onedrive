@@ -17,22 +17,24 @@
         var btnMount = document.querySelector("#btnMount");
         event.preventDefault();
         btnMount.setAttribute("disabled", "true");
-        document.getElementById("toast-mount-attempt").show();
+        $.toaster({message: chrome.i18n.getMessage("mountAttempt")});
         var request = {
             type: "mount"
         };
         chrome.runtime.sendMessage(request, function(response) {
-            if (response.success) {
-                document.getElementById("toast-mount-success").show();
+            if (response && response.success) {
+                $.toaster({message: chrome.i18n.getMessage("mountSuccess")});
                 window.setTimeout(function() {
                     window.close();
                 }, 2000);
             } else {
-                var toast = document.getElementById("toast-mount-fail");
-                if (response.error) {
-                    toast.setAttribute("text", response.error);
+                var msg = {title: chrome.i18n.getMessage("mountFail"), priority: "danger"};
+                if (response && response.error) {
+                    msg.message = response.error;
+                } else {
+                    msg.message = "Something wrong.";
                 }
-                toast.show();
+                $.toaster(msg);
                 btnMount.removeAttribute("disabled");
             }
         });
@@ -50,16 +52,9 @@
 
             var textNode = null;
             switch(element.tagName.toLowerCase()) {
-            case "paper-button":
+            case "button":
                 textNode = document.createTextNode(messageText);
                 element.appendChild(textNode);
-                break;
-            case "paper-input":
-            case "paper-dropdown":
-                element.setAttribute("label", messageText);
-                break;
-            case "paper-toast":
-                element.setAttribute("text", messageText);
                 break;
             case "h1":
             case "title":

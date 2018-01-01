@@ -5,13 +5,13 @@
 <head>
   <meta charset="UTF-8" />
 
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title data-message="mountHeader"></title>
 
   <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
 
-  <script src="bower_components/webcomponentsjs/webcomponents.min.js"></script>
-  <link rel="import" href="bower_components/paper-toast/paper-toast.html">
-  <link rel="import" href="bower_components/paper-button/paper-button.html">
+  <link href="bower_components/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
 
   <script type="text/javascript" src="scripts/onedrive_client.js"></script>
   <script type="text/javascript" src="scripts/onedrive_fs.js"></script>
@@ -20,18 +20,23 @@
 </head>
 
 <body>
-  <paper-toast data-message="mountAttempt" id="toast-mount-attempt"></paper-toast>
-  <paper-toast data-message="mountFail" id="toast-mount-fail"></paper-toast>
-  <paper-toast data-message="mountSuccess" id="toast-mount-success"></paper-toast>
 
-  <div vertical layout center>
-    <div horizontal layout>
-      <img src="/icons/64.png">
-      <h1>Mount your OneDrive</h1>
+  <div class="container-fluid">
+    <div class="row header">
+      <div class="col-xs-4 icon">
+        <img src="/icons/64.png" id="logo">
+      </div>
+      <div class="col-xs-8">
+        <h2>Mount your OneDrive</h2>
+      </div>
     </div>
-    <paper-button id="btnMount" data-message="mount"></paper-button>
+    <div class="main">
+      <button id="btnMount" class="btn btn-default" data-message="mount"></button>
+    </div>
   </div>
 
+  <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+  <script type="text/javascript" src="bower_components/jquery.toaster/jquery.toaster.js"></script>
   <script type="text/javascript" src="scripts/window.js"></script>
 
 </body>

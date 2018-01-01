@@ -4,14 +4,33 @@
 
 body {
   font-family: Helvetica, Arial, sans-serif;
-  margin: 10px;
-  padding: 0px;
+  font-size: 14px;
+  line-height: 17px;
+  margin: 0;
+  padding: 0;
 }
 
-paper-button {
-  display: block;
-  margin: 30px auto 30px auto;
-  width: 100px;
-  font-size: 16px;
-  color: #4285f4;
+div.container-fluid {
+  padding: 0;
+}
+
+.header {
+  margin-top: 10px;
+}
+
+h2 {
+  font-size: 23px;
+}
+
+.icon {
+  text-align: right;
+}
+
+.main {
+  text-align: center;
+  margin-top: 30px;
+}
+
+img.season {
+  position: absolute;
 }
