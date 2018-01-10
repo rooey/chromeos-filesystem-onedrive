@@ -3,16 +3,16 @@
   "name": "__MSG_appName__",
   "short_name": "__MSG_shortName__",
   "description": "__MSG_appDescription__",
-  "version": "1.0.5",
+  "version": "2.0.0.10006",
+  "version_name": "2.0 Alpha b10006",
   "default_locale": "en",
   "permissions": [
     "identity",
     "fileSystemProvider",
     "storage",
     "notifications",
-    "https://api.onedrive.com/",
-    "https://*.files.1drv.com/",
-    "https://*.up.1drv.com/"
+    "https://graph.microsoft.com/",
+    "https://login.microsoftonline.com/"
   ],
   "app": {
     "background": {

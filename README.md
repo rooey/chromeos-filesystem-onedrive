@@ -2,6 +2,8 @@
 
 # File System for OneDrive
 
+Maintained by Rooey to add Graph API support and OneDrive personal & business & provide bug fixes
+
 File System for OneDrive provides you an ability to access to your OneDrive storage directly from the Files app.
 
 <a target="_blank" href="https://chrome.google.com/webstore/detail/file-system-for-onedrive/jbfdfcehgafdbfpniaimfbfomafoadgo">
@@ -13,7 +15,7 @@ File System for OneDrive provides you an ability to access to your OneDrive stor
 ## How to build
 
 ```
-$ git clone https://github.com/yoichiro/chromeos-filesystem-onedrive.git
+$ git clone https://github.com/rooey/chromeos-filesystem-onedrive.git
 $ cd chromeos-filesystem-onedrive
 $ npm install
 $ grunt
@@ -27,4 +29,5 @@ $ grunt
 ## License
 
 All files are licensed under the BSD license. See the LICENSE file for details.
-All original source code is Copyright 2015 Yoichiro Tanaka.
+All original source code is Copyright 2018 Yoichiro Tanaka
+Copyright 2018 Michael V Heath
