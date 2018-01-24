@@ -1,4 +1,4 @@
-[![Code Climate](https://codeclimate.com/github/yoichiro/chromeos-filesystem-onedrive/badges/gpa.svg)](https://codeclimate.com/github/yoichiro/chromeos-filesystem-onedrive)
+[![Code Climate](https://codeclimate.com/github/rooey/chromeos-filesystem-onedrive/badges/gpa.svg)](https://codeclimate.com/github/rooey/chromeos-filesystem-onedrive)
 
 # File System for OneDrive
 
@@ -23,7 +23,7 @@ $ grunt
 
 ## Dependent libraries
 
-* [Polymer](https://www.polymer-project.org/)
+* [Bootstrap] (http://getbootstrap.com)
 * [jQuery](http://jquery.com/)
 
 ## License

@@ -4,16 +4,12 @@
 
     // Private fields
 
-    // For Development
-    // var CLIENT_ID = "000000004C142702";
-    // For Production
-    // var CLIENT_ID = "000000004014A800";
-
     var storedAppInfo = null;
 
+    // For Production
     var appInfo = {
         "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
-        "clientSecret": "wetcQA3[)aosEYTCG6979?]",
+        "clientSecret": "SECRETGOESHERE",
         "redirectUri": chrome.identity.getRedirectURL(""),
         "scopes": "files.readwrite.all offline_access",
         "authServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",

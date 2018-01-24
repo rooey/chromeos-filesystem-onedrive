@@ -32,6 +32,7 @@
             } else {
                 this.onedrive_client_ = new OneDriveClient(this);
                 this.onedrive_client_.authorize(function() {
+                    /*
                     console.log("getting drive data");
 
                     this.onedrive_client_.getDriveData();
@@ -44,6 +45,7 @@
                     console.log("driveData-14");
                     console.log(this.driveData);
                     console.log("driveData-15");
+                    */
 
                     chrome.fileSystemProvider.mount({
                         fileSystemId: FILE_SYSTEM_ID,
