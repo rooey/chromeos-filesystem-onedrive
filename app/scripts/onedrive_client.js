@@ -170,7 +170,7 @@
                 this.token_expiry_ = parseInt(tokenInfo.expires_in);
                 if (this.access_token_)
                 {
-                    OneDriveClient.prototype.setCookie(this.access_token_, this.token_expiry_);
+                    OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
                     successCallback();
                 } else {
                     errorCallback("failed to get an access token ");
