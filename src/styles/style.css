@@ -1,0 +1,36 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 17px;
+  margin: 0;
+  padding: 0;
+}
+
+div.container-fluid {
+  padding: 0;
+}
+
+.header {
+  margin-top: 10px;
+}
+
+h2 {
+  font-size: 23px;
+}
+
+.icon {
+  text-align: right;
+}
+
+.main {
+  text-align: center;
+  margin-top: 30px;
+}
+
+img.season {
+  position: absolute;
+}
