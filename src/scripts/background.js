@@ -11,7 +11,7 @@ const background = () => {
     }).install();
     console.log('Sentry initialized.');
 
-    const dropbox_fs_ = new DropboxFS();
+    const onedrive_fs_ = new OneDriveFS();
 
     const openWindow = () => {
         chrome.app.window.create('window.html', {
@@ -30,7 +30,7 @@ const background = () => {
     }
 
     const mount = (successCallback, errorCallback) => {
-        dropbox_fs_.mount(() => {
+        onedrive_fs_.mount(() => {
             successCallback();
         }, reason => {
             errorCallback(reason);

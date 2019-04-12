@@ -18,7 +18,7 @@ File System for OneDrive provides you an ability to access to your OneDrive stor
 $ git clone https://github.com/rooey/chromeos-filesystem-onedrive.git
 $ cd chromeos-filesystem-onedrive
 $ npm install
-$ grunt
+$ gulp
 ```
 
 ## Dependent libraries
@@ -29,5 +29,5 @@ $ grunt
 ## License
 
 All files are licensed under the BSD license. See the LICENSE file for details.
-All original source code is Copyright 2018 Yoichiro Tanaka
-Copyright 2018 Michael V Heath
+All original source code is Copyright 2019 Yoichiro Tanaka
+Copyright 2019 Michael V Heath
