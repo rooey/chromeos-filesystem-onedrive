@@ -1,9 +1,0 @@
-{
-  "name": "Dropbox File System",
-  "version": "1.0.0",
-  "dependencies": {
-    "jquery": "~1.11.2",
-    "bootstrap": "^3.3.7",
-    "jquery.toaster": "^1.2.0"
-  }
-}
