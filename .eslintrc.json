@@ -1,0 +1,25 @@
+{
+  "extends": ["eslint:recommended"],
+  "plugins": [],
+  "parserOptions": {},
+  "env": {
+    "browser": true,
+    "es6": true
+  },
+  "globals": {
+    "$": false,
+    "Raven": false,
+    "chrome": false,
+    "OneDriveClient": false,
+    "MetadataCache": false,
+    "OneDriveFS": false,
+    "HttpFetcher": false
+  },
+  "rules": {
+    "no-console": "off",
+    "semi": "error",
+    "no-var": "error",
+    "no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
+    "quotes": ["error", "single"]
+  }
+}
