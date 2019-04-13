@@ -1,13 +1,10 @@
 'use strict';
 
-let appInfo = {
-    "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
-    "clientSecret": "SECRETGOESHERE",
-    "redirectUri": chrome.identity.getRedirectURL(""),
-    "scopes": "files.readwrite.all offline_access",
-    "authServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-    "tokenServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-};
+let storedAppInfo = null;
+
+let appInfo=OneDriveClient.getAppInfo();
+
+const CLIENT_SECRET = "SECRETGOESHERE";
 
 const AUTH_URL = appInfo.authServiceUri +
     "?client_id=" + appInfo.clientId +
@@ -31,39 +28,216 @@ class OneDriveClient {
     // Public functions
 
     authorize(successCallback, errorCallback) {
-        this.access_token_ = null;
-        chrome.identity.launchWebAuthFlow({
-            'url': AUTH_URL,
-            'interactive': true
-        }, redirectUrl => {
-            if (chrome.runtime.lastError) {
-                errorCallback(chrome.runtime.lastError.message);
-                return;
+        this.access_token_ = OneDriveClient.getTokenFromCookie();
+        if (this.access_token_) {
+            successCallback();
+        }
+        else {
+            var appInfo = OneDriveClient.getAppInfo();
+            var AUTH_URL = appInfo.authServiceUri +
+                "?client_id=" + appInfo.clientId +
+                "&response_type=code" +
+                "&redirect_uri=" + encodeURIComponent(appInfo.redirectUri);
+    
+            if (appInfo.scopes) {
+                AUTH_URL += "&scope=" + encodeURIComponent(appInfo.scopes);
             }
-            if (redirectUrl) {
-                const parametersStr = redirectUrl.substring(redirectUrl.indexOf('#') + 1);
-                const parameters = parametersStr.split('&');
-                for (let i = 0; i < parameters.length; i++) {
-                    const parameter = parameters[i];
-                    const kv = parameter.split('=');
-                    if (kv[0] === 'access_token') {
-                        this.access_token_ = kv[1];
-                    }
+            if (appInfo.resourceUri) {
+                AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUri);
+            }
+    
+            console.log(AUTH_URL);
+            chrome.identity.launchWebAuthFlow({
+                "url": AUTH_URL,
+                "interactive": true
+            }, redirectUrl=> {
+                if (chrome.runtime.lastError) {
+                    errorCallback(chrome.runtime.lastError.message);
+                    return;
                 }
-                if (this.access_token_) {
-                    chrome.identity.removeCachedAuthToken({
-                        token: this.access_token_
-                    }, () => {
-                        successCallback();
-                    });
+                if (redirectUrl) {
+                    var codeInfo = OneDriveClient.getCodeFromUrl(redirectUrl);
+                    this.code_ = codeInfo.code;
+    
+                    // Get Token via POST
+                    $.ajax({
+                        type: "POST",
+                        url: appInfo.tokenServiceUri,
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        responseType: "arraybuffer",
+                        data: "client_id=" + appInfo.clientId +
+                            "&redirect_uri=" + appInfo.redirectUri +
+                            "&client_secret=" + appInfo.clientSecret +
+                            "&code=" + this.code_ +
+                            "&grant_type=authorization_code",
+                        dataType: "text"
+                    }).done(function(jsonData) {
+                        console.log("OK-jsonData");
+                        console.log(jsonData);
+                        var tokenInfo = OneDriveClient.prototype.getTokenInfoFromJSON(jsonData);
+                        console.log("tokenInfo");
+                        console.log(tokenInfo);
+    
+                        // Process Token - WEAREHERE
+    
+                        this.access_token_ = tokenInfo.access_token;
+                        this.refresh_token_ = tokenInfo.refresh_token;
+                        this.token_expiry_ = parseInt(tokenInfo.expires_in);
+    
+                        if (this.access_token_)
+                        {
+                            OneDriveClient.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
+                            this.driveData = OneDriveClient.getDriveData();
+                            successCallback();
+                        } else {
+                            console.log("This error is here. 1");
+                            errorCallback("failed to get an access token ");
+                        }
+                    }.fail(error => {
+                        console.log(error);
+                        errorCallback(error);
+                    }))
                 } else {
-                    errorCallback('Issuing Access token failed');
+                    errorCallback("Authorization failed");
                 }
-            } else {
-                errorCallback('Authorization failed');
+            })
+        }
+    };
+
+    getAppInfo() {
+        if (storedAppInfo) {
+            return storedAppInfo;
+        }
+     
+        var scriptTag = document.getElementById("onedriveclient");
+        if (!scriptTag) {
+            console.log("the script tag for OneDriveClient should have its id set to 'onedriveclient'");
+        }
+    
+        var clientId = scriptTag.getAttribute("clientId");
+        if (!clientId) {
+            console.log("the OneDriveClient script tag needs a clientId attribute set to your application id");
+        }
+    
+        var scopes = scriptTag.getAttribute("scopes");
+        // scopes aren't always required, so we don't warn here.
+    
+        var redirectUri = chrome.identity.getRedirectURL("");
+    
+        var resourceUri = scriptTag.getAttribute("resourceUri");
+        if (!resourceUri) {
+            console.log("the OneDriveClient script tag needs a resourceUri attribtue set to the oauth token service url");
+        }
+
+        var tokenServiceUri = scriptTag.getAttribute("tokenServiceUri");
+        if (!tokenServiceUri) {
+            console.log("the OneDriveClient script tag needs a tokenServiceUri attribtue set to the oauth token service url");
+        }
+        
+        var authServiceUri = scriptTag.getAttribute("authServiceUri");
+        if (!authServiceUri) {
+            console.log("the OneDriveClient script tag needs an authServiceUri attribtue set to the oauth authentication service url");
+        }
+    
+        var appInfo = {
+            "clientId": clientId,
+            "scopes": scopes,
+            "redirectUri": redirectUri,
+            "tokenServiceUri": tokenServiceUri,
+            "authServiceUri": authServiceUri
+        };
+    
+        storedAppInfo = appInfo;
+    
+        return appInfo;
+    };
+
+    getDriveData(successCallback, errorCallback) {
+        var url = "https://graph.microsoft.com/v1.0/me/drive";
+        console.log("url set");
+        $.ajax({
+            type: "GET",
+            url: url,
+            headers: {
+                "Authorization": "Bearer " + this.access_token_
+            },
+            dataType: "json"
+        }).done(function(result) {
+            console.log("preres");
+            console.log(result);
+            console.log("postres");
+            var driveData = {
+                id: result.id,
+                name: this.normalizeName.call(this, result.name),
+                type: result.driveType,
+                quota: result.quota
+            };
+        
+            console.log("drive data:");
+            console.log(driveData);
+            console.log("drive data end:");
+            //return driveData;
+            successCallback(result, false);
+        }.fail(error => {
+            console.log(error);
+            errorCallback(error);
+        })
+        );
+    };
+
+    getTokenFromCookie() {
+        var cookies = document.cookie;
+        var name = "onedriveclient=";
+        var start = cookies.indexOf(name);
+        if (start >= 0) {
+            start += name.length;
+            var end = cookies.indexOf(';', start);
+            if (end < 0) {
+                end = cookies.length;
             }
-        });
-    }
+            else {
+                var postCookie = cookies.substring(end);
+            }
+
+            var value = cookies.substring(start, end);
+            return value;
+        }
+
+        return "";
+    };
+
+    getTokenInfoFromJSON(jsonData) {
+        if (jsonData) {
+            console.log(jsonData);
+    
+            var tokenInfo = JSON.parse(jsonData);
+            console.log("tokenInfo");
+            console.log(tokenInfo);
+            return tokenInfo;
+        }
+        else {
+            console.log("failed to receive tokenInfo");
+        }
+    };
+
+    getCodeFromUrl(redirectUrl) {
+        if (redirectUrl) {
+            var codeResponse = redirectUrl.substring(redirectUrl.indexOf("?") + 1);
+            console.log(codeResponse);
+    
+            var codeInfo = JSON.parse(
+                '{' + codeResponse.replace(/([^=]+)=([^&]+)&?/g, '"$1":"$2",').slice(0,-1) + '}',
+                function(key, value) { return key === "" ? value : decodeURIComponent(value); });
+            console.log("codeInfo");
+            console.log(codeInfo);
+            return codeInfo;
+        }
+        else {
+            console.log("failed to receive codeInfo");
+        }
+    };
 
     getAccessToken() {
         return this.access_token_;
@@ -148,11 +322,10 @@ class OneDriveClient {
                     size: 'w128h128'
                 });
                 new HttpFetcher(this, 'get_thumbnail', {
-                    type: 'POST',
-                    url: 'https://content.onedriveapi.com/2/files/get_thumbnail',
+                    type: 'GET',
+                    url: 'https://graph.microsoft.com/v1.0/me/drive/root',
                     headers: {
                         'Authorization': 'Bearer ' + this.access_token_,
-                        'OneDrive-API-Arg': data
                     },
                     dataType: 'binary',
                     responseType: 'arraybuffer'
@@ -578,6 +751,13 @@ class OneDriveClient {
         }, _notificationId => {
         });
     }
+    normalizeName(name) {
+        if (name === "root") {
+            return "";
+        } else {
+            return name;
+        }
+    };
 
     createEntryMetadatas(contents, index, entryMetadatas, successCallback, errorCallback) {
         if (contents.length === index) {
