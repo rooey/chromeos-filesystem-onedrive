@@ -11,6 +11,7 @@
     "fileSystemProvider",
     "storage",
     "notifications",
+    "alarms",
     "https://graph.microsoft.com/",
     "https://login.microsoftonline.com/"
   ],
