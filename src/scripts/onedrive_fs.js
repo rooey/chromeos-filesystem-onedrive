@@ -21,37 +21,42 @@ class OneDriveFS {
     mount(successCallback, errorCallback) {
         const onedriveClient = new OneDriveClient(this);
         onedriveClient.authorize(() => {
-            onedriveClient.getUserInfo((userInfo) => {
-                console.log(userInfo);
-                const fileSystemId = this.createFileSystemID(userInfo.uid);
-                chrome.fileSystemProvider.getAll(fileSystems => {
-                    let mounted = false;
-                    for (let i = 0; i < fileSystems.length; i++) {
-                        if (fileSystems[i].fileSystemId === fileSystemId) {
-                            mounted = true;
-                            break;
+            onedriveClient.getDriveData((driveInfo) => {
+                onedriveClient.getUserInfo((userInfo) => {
+                    console.log(driveInfo);
+                    const fileSystemId = this.createFileSystemID(driveInfo.id);
+                    chrome.fileSystemProvider.getAll(fileSystems => {
+                        let mounted = false;
+                        for (let i = 0; i < fileSystems.length; i++) {
+                            if (fileSystems[i].fileSystemId === fileSystemId) {
+                                mounted = true;
+                                break;
+                            }
                         }
-                    }
-                    if (mounted) {
-                        errorCallback('ALREADY_MOUNTED');
-                    } else {
-                        this.onedrive_client_map_[fileSystemId] = onedriveClient;
-                        chrome.storage.local.get('settings', items => {
-                            const settings = items.settings || {};
-                            const openedFilesLimit = settings.openedFilesLimit || '10';
-                            chrome.fileSystemProvider.mount({
-                                fileSystemId: fileSystemId,
-                                displayName: FILE_SYSTEM_NAME + ' (' + userInfo.displayName + ')',
-                                writable: true,
-                                openedFilesLimit: Number(openedFilesLimit)
-                            }, () => {
-                                this.registerMountedCredential(
-                                    userInfo.uid, onedriveClient.getAccessToken(), () => {
+                        if (mounted) {
+                            errorCallback('ALREADY_MOUNTED');
+                        } else {
+                            this.onedrive_client_map_[fileSystemId] = onedriveClient;
+                            chrome.storage.local.get('settings', items => {
+                                const settings = items.settings || {};
+                                const openedFilesLimit = settings.openedFilesLimit || '10';
+                                chrome.fileSystemProvider.mount({
+                                    fileSystemId: fileSystemId,
+                                    displayName: FILE_SYSTEM_NAME + ' (' + userInfo.displayName +' - '+ driveInfo.type + ')',
+                                    writable: true,
+                                    openedFilesLimit: Number(openedFilesLimit)
+                                }, () => {
+                                    this.registerMountedCredential(
+                                        driveInfo.id, onedriveClient.getAccessToken(), () => {
                                         successCallback();
                                     });
+                                });
                             });
-                        });
-                    }
+                        }
+                    });
+                }, reason => {
+                    console.log(reason);
+                    errorCallback(reason);
                 });
             }, reason => {
                 console.log(reason);

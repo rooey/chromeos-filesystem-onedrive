@@ -6,7 +6,7 @@ let appInfo = {
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
     "clientSecret": "SECRET GOES HERE",
     "redirectUri": chrome.identity.getRedirectURL(""),
-    "scopes": "files.readwrite.all offline_access",
+    "scopes": "files.readwrite.all offline_access user.read",
     "authServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     "tokenServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 };
@@ -57,8 +57,8 @@ class OneDriveClient {
                 }
                 if (redirectUrl) {
                     var codeInfo = this.getCodeFromUrl(redirectUrl);
-                    this.code_ = codeInfo.code;
-    
+                    console.log("AJAX Start");
+                    console.log("CODE: "+codeInfo.code);
                     // Get Token via POST
                     $.ajax({
                         type: "POST",
@@ -70,7 +70,7 @@ class OneDriveClient {
                         data: "client_id=" + appInfo.clientId +
                             "&redirect_uri=" + appInfo.redirectUri +
                             "&client_secret=" +  appInfo.clientSecret +
-                            "&code=" + this.code_ +
+                            "&code=" + codeInfo.code +
                             "&grant_type=authorization_code",
                         dataType: "text"
                     }).done(jsonData => {
@@ -98,6 +98,7 @@ class OneDriveClient {
                             errorCallback("failed to get an access token ");
                         }
                     }).fail(error => {
+                        console.log("AJAX Failed");
                         console.log(error);
                         errorCallback(error);
                     })
@@ -115,38 +116,6 @@ class OneDriveClient {
         
         storedAppInfo = appInfo;
         return storedAppInfo;
-    };
-
-    getDriveData(successCallback, errorCallback) {
-        var url = "https://graph.microsoft.com/v1.0/me/drive";
-        console.log("url set");
-        $.ajax({
-            type: "GET",
-            url: url,
-            headers: {
-                "Authorization": "Bearer " + this.access_token_
-            },
-            dataType: "json"
-        }).done(function(result) {
-            console.log("preres");
-            console.log(result);
-            console.log("postres");
-            var driveData = {
-                id: result.id,
-                name: this.normalizeName.call(this, result.name),
-                type: result.driveType,
-                quota: result.quota
-            };
-        
-            console.log("drive data:");
-            console.log(driveData);
-            console.log("drive data end:");
-            //return driveData;
-            successCallback(result, false);
-        }).fail(error => {
-            console.log(error);
-            errorCallback(error);
-        })
     };
 
     setCookie() {
@@ -223,6 +192,7 @@ class OneDriveClient {
 
     unauthorize(successCallback, errorCallback) {
         if (this.access_token_) {
+            //MSFT doesn't support this; we need to delete the token instead.
             $.ajax({
                 type: 'POST',
                 url: 'https://api.onedriveapi.com/2/auth/token/revoke',
@@ -246,19 +216,40 @@ class OneDriveClient {
         }
     }
 
-    getUserInfo(successCallback, errorCallback) {
-        new HttpFetcher(this, 'getuserInfo', {
-            type: 'POST',
-            url: 'https://api.onedriveapi.com/2/users/get_current_account',
+    getDriveData(successCallback, errorCallback) {
+        console.log("I got this far at least...");
+        new HttpFetcher(this, 'getDriveData', {
+            type: 'GET',
+            url: 'https://graph.microsoft.com/v1.0/me/drive',
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_
             },
             dataType: 'json'
         }, {}, result => {
-            this.uid_ = result.account_id;
+            this.uid_ = result.id;
             successCallback({
-                uid: result.account_id,
-                displayName: result.name.display_name
+                id: result.id,
+                name: this.normalizeName(result.name),
+                type: result.driveType,
+                quota: result.quota
+            });
+        }, errorCallback).fetch();
+    }
+
+    getUserInfo(successCallback, errorCallback) {
+        console.log("I got this far at least...");
+        new HttpFetcher(this, 'getuserInfo', {
+            type: 'GET',
+            url: 'https://graph.microsoft.com/v1.0/me',
+            headers: {
+                'Authorization': 'Bearer ' + this.access_token_
+            },
+            dataType: 'json'
+        }, {}, result => {
+            this.uid_ = result.id;
+            successCallback({
+                id: result.id,
+                displayName: result.displayName
             });
         }, errorCallback).fetch();
     }
@@ -321,7 +312,11 @@ class OneDriveClient {
     readDirectory(path, successCallback, errorCallback) {
         const fetchingListFolderObject = this.createFetchingListFolderObject(path === '/' ? '' : path);
         new HttpFetcher(this, 'readDirectory', fetchingListFolderObject, fetchingListFolderObject.data, result => {
+            console.log('contents of readdirpt1');
+            console.log(result);
             const contents = result.entries;
+            console.log('contents of readdirectory');
+            console.log(contents);
             this.createEntryMetadatas(contents, 0, [], entries => {
                 this.continueReadDirectory(result, entries, successCallback, errorCallback);
             }, errorCallback);
@@ -652,12 +647,17 @@ class OneDriveClient {
     }
 
     createFetchingListFolderObject(path) {
+        var url = "https://graph.microsoft.com/v1.0/me/drive/root";
+        console.log('Looking for PATH: ');
+        console.log(path);
+        if (path !== "") {
+            url += ":" + path + ":";
+        }
         return {
-            type: 'POST',
-            url: 'https://api.onedriveapi.com/2/files/list_folder',
+            type: 'GET',
+            url: url + "/children",
             headers: {
-                'Authorization': 'Bearer ' + this.access_token_,
-                'Content-Type': 'application/json; charset=utf-8'
+                'Authorization': 'Bearer ' + this.access_token_
             },
             dataType: 'json',
             data: JSON.stringify({
@@ -686,6 +686,8 @@ class OneDriveClient {
     continueReadDirectory(readDirectoryResult, entries, successCallback, errorCallback) {
         if (readDirectoryResult.has_more) {
             const fetchingContinueListFolderObject = this.createFetchingContinueListFolderObject(readDirectoryResult.cursor);
+            console.log('continuereaddir');
+            console.log(fetchingContinueListFolderObject);
             const data = fetchingContinueListFolderObject.data;
             new HttpFetcher(this, 'continueReadDirectory', fetchingContinueListFolderObject, data, result => {
                 const contents = result.entries;
@@ -725,15 +727,18 @@ class OneDriveClient {
         }, _notificationId => {
         });
     }
+    
     normalizeName(name) {
         if (name === "root") {
             return "";
         } else {
             return name;
         }
-    };
+    }
 
     createEntryMetadatas(contents, index, entryMetadatas, successCallback, errorCallback) {
+        console.log('contents parsing from createmetadatas...');
+        console.log(contents);
         if (contents.length === index) {
             successCallback(entryMetadatas);
         } else {
@@ -744,6 +749,8 @@ class OneDriveClient {
                 size: content.size || 0,
                 modificationTime: content.server_modified ? new Date(content.server_modified) : new Date()
             };
+            console.log('no length avail');
+            console.log(entryMetadata);
             entryMetadatas.push(entryMetadata);
             this.createEntryMetadatas(contents, ++index, entryMetadatas, successCallback, errorCallback);
         }

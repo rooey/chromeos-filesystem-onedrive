@@ -15,11 +15,11 @@ div.container-fluid {
 }
 
 .header {
-  margin-top: 10px;
+  margin-top: 50px;
 }
 
-h2 {
-  font-size: 23px;
+.appname {
+  line-height: 2;
 }
 
 .icon {
@@ -29,6 +29,29 @@ h2 {
 .main {
   text-align: center;
   margin-top: 30px;
+}
+
+.link {
+  text-align: right;
+  position: absolute;
+  bottom: 60px;
+  right: 10px;
+}
+
+.footer {
+  width: 100%;
+  background-color: #2298f2;
+  height: 50px;
+  bottom: 0;
+  position: absolute;
+}
+
+.footer div {
+  color: white;
+  font-size: 32px;
+  margin-top: 5px;
+  margin-left: 10px;
+  cursor: pointer;
 }
 
 img.season {

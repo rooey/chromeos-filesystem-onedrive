@@ -23,7 +23,7 @@ class MountWindow {
         // Xmas
         if (month === 12 && (1 <= date && date <= 25)) {
             const img = document.createElement('img');
-            img.src = 'icons/xmas.png';
+            img.src = '/icons/32.png';
             img.classList.add('season');
             const logo = document.querySelector('#logo');
             img.style.top = logo.getBoundingClientRect().top + 'px';

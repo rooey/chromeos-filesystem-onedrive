@@ -17,6 +17,9 @@ class HttpFetcher {
 
     fetch() {
         $.ajax(this.request_).done(result => {
+            console.log('httpfetcher');
+            console.log(this.request_);
+            console.log(result);
             this.successCallback_(result);
         }).fail((error, textStatus, errorThrown) => {
             this.handleError(error, textStatus, errorThrown);
