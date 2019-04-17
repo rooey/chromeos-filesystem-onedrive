@@ -11,6 +11,26 @@
     "message": "This application provides File System for your OneDrive storage.",
     "description": "Application description"
   },
+  "appTitle": {
+    "message": "OneDrive for ChromeOS",
+    "description": "Header describing the server mount form."
+  },
+  "configManageSectionText": {
+    "message": "Your Microsoft Account",
+    "description": "Microsoft Account management."
+  },
+  "configManageLinkText": {
+    "message": "Manage Linked Applications",
+    "description": "Link to Microsoft Account permissions page."
+  },
+  "configSyncFilesText": {
+    "message": "Synchronize files/directories automatically",
+    "description": "File sync configuration option."
+  },
+  "configFilesLimitText": {
+    "message": "Opened files limit",
+    "description": "Files limit configuration option."
+  },
   "mountHeader": {
     "message": "Mount your OneDrive",
     "description": "Header describing the server mount form."

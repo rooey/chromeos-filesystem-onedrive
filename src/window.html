@@ -33,10 +33,6 @@
     <div class="main">
       <button id="btnMount" class="btn btn-primary" data-message="mount"></button>
     </div>
-    <div class="link">
-      <a  href="https://www.onedrive.com/account/security#apps" target="_blank">OneDrive linked applications list</a>
-    </div>
-
     <div class="footer">
       <div id="btnSettings" class="glyphicon glyphicon-cog" aria-hidden="true"></div>
     </div>
@@ -48,7 +44,7 @@
         <div class="modal-body">
           <form class="form-horizontal">
             <div class="form-group">
-              <label class="col-sm-2 control-label">Opened files limit</label>
+              <label class="col-sm-2 control-label"><div data-message="configFilesLimitText"></div></label>
               <div class="col-sm-10">
                 <label class="checkbox-inline">
                   <input type="radio" id="openedFilesLimit0" name="openedFilesLimit" value="0"/> 0
@@ -65,7 +61,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="col-sm-2 control-label">Synchronize files/directories automatically</label>
+              <label class="col-sm-2 control-label"><div data-message="configSyncFilesText"></div></label>
               <div class="col-sm-10">
                 <label class="checkbox-inline">
                   <input type="radio" id="useWatcherOn" name="useWatcher" value="0"/> On
@@ -75,9 +71,15 @@
                 </label>
               </div>
             </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label"><div data-message="configManageSectionText"></div></label>
+                <div class="col-sm-10">
+              <label class="checkbox-inline">
+                <a  href="https://account.live.com/consent/Manage" target="_blank"><div data-message="configManageLinkText"></div></a>
+              </label>
+            </div>
           </form>
-        </div>
-        <div class="modal-footer">
+          <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
       </div>
