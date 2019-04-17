@@ -275,7 +275,7 @@ class OneDriveClient {
         const fetchingMetadataObject = this.createFetchingMetadataObject(path);
         new HttpFetcher(this, 'getMetadata', fetchingMetadataObject, fetchingMetadataObject.data, result => {
             const entryMetadata = {
-                isDirectory: result['.tag'] === 'folder',
+                isDirectory: ("folder" in result),
                 name: result.name,
                 size: result.size || 0,
                 modificationTime: result.server_modified ? new Date(result.server_modified) : new Date()
@@ -312,10 +312,7 @@ class OneDriveClient {
     readDirectory(path, successCallback, errorCallback) {
         const fetchingListFolderObject = this.createFetchingListFolderObject(path === '/' ? '' : path);
         new HttpFetcher(this, 'readDirectory', fetchingListFolderObject, fetchingListFolderObject.data, result => {
-            console.log('contents of readdirpt1');
-            console.log(result);
-            const contents = result.entries;
-            console.log('contents of readdirectory');
+            const contents = result.value;
             console.log(contents);
             this.createEntryMetadatas(contents, 0, [], entries => {
                 this.continueReadDirectory(result, entries, successCallback, errorCallback);
@@ -737,20 +734,16 @@ class OneDriveClient {
     }
 
     createEntryMetadatas(contents, index, entryMetadatas, successCallback, errorCallback) {
-        console.log('contents parsing from createmetadatas...');
-        console.log(contents);
         if (contents.length === index) {
             successCallback(entryMetadatas);
         } else {
             const content = contents[index];
             const entryMetadata = {
-                isDirectory: content['.tag'] === 'folder',
+                isDirectory: ("folder" in content),
                 name: content.name,
                 size: content.size || 0,
                 modificationTime: content.server_modified ? new Date(content.server_modified) : new Date()
             };
-            console.log('no length avail');
-            console.log(entryMetadata);
             entryMetadatas.push(entryMetadata);
             this.createEntryMetadatas(contents, ++index, entryMetadatas, successCallback, errorCallback);
         }
