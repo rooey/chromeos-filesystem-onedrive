@@ -264,6 +264,7 @@ class OneDriveClient {
 
     getMetadata(path, successCallback, errorCallback) {
         if (path === '/') {
+            console.log('path is === /');
             successCallback({
                 isDirectory: true,
                 name: '',
@@ -274,6 +275,7 @@ class OneDriveClient {
         }
         const fetchingMetadataObject = this.createFetchingMetadataObject(path);
         new HttpFetcher(this, 'getMetadata', fetchingMetadataObject, fetchingMetadataObject.data, result => {
+            console.log('metadataobject - isDirectory:' + ("folder" in result) + "XXX");
             const entryMetadata = {
                 isDirectory: ("folder" in result),
                 name: result.name,
@@ -517,7 +519,7 @@ class OneDriveClient {
     }
 
     /*
-    sendSimpleUpload(options, successCallback, errorCallback) {
+    startSimpleUpload(options, successCallback, errorCallback) {
         $.ajax({
             type: "PUT",
             url: "https://graph.microsoft.com/v1.0/me/drive/root:" + options.filePath + ":/content",
@@ -552,6 +554,7 @@ class OneDriveClient {
             data: new ArrayBuffer(),
             dataType: 'json'
         }, data, result => {
+            console.log('uploading via sumpleupload');
             console.log(result);
             const sessionId = result.session_id;
             successCallback(sessionId);
@@ -655,17 +658,18 @@ class OneDriveClient {
     } */
 
     copyOrMoveEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
+        var url = "https://graph.microsoft.com/v1.0/me/drive/root";
         const data = JSON.stringify({
             from_path: sourcePath,
             to_path: targetPath
         });
         console.log('operation is below');
         if (operation === 'copy'){
-            var url = "https://graph.microsoft.com/v1.0/me/drive/root:" + sourcePath + ":/action.copy";
-            var operation = 'POST';
+            url += ":" + sourcePath + ":/action.copy";
+            operation = 'POST';
         } else {
-            var url = "https://graph.microsoft.com/v1.0/me/drive/root:" + sourcePath;
-            var operation = 'PATCH';
+            url += ":" + sourcePath;
+            operation = 'PATCH';
         }
 
         new HttpFetcher(this, 'copyOrMoveEntry', {
@@ -684,7 +688,7 @@ class OneDriveClient {
 
     createFetchingMetadataObject(path) {
         var url = "https://graph.microsoft.com/v1.0/me/drive/root";
-        if (path !== "/") {
+        if (path !=="") {
             url += ":" + path;
         }
         return {
@@ -703,9 +707,7 @@ class OneDriveClient {
 
     createFetchingListFolderObject(path) {
         var url = "https://graph.microsoft.com/v1.0/me/drive/root";
-        console.log('Looking for PATH: ');
-        console.log(path);
-        if (path !== "") {
+        if (path !=="") {
             url += ":" + path + ":";
         }
         return {
@@ -756,15 +758,33 @@ class OneDriveClient {
     }
 
     createOrDeleteEntry(operation, path, successCallback, errorCallback) {
-        const data = JSON.stringify({
+        var url = "https://graph.microsoft.com/v1.0/me/drive/root";
+        var data = JSON.stringify({
             path: path
         });
         console.log('operation is below')
-        if (operation === 'delete'){
-            var url = "https://graph.microsoft.com/v1.0/me/drive/root:" + path;
-        } else {
-            var url = "https://graph.microsoft.com/v1.0/me/drive/root:" + path + ":/content";
-            var operation = 'PUT'
+        switch(operation){
+            case 'create_folder':
+                console.log('making a directory');
+                data = JSON.stringify({
+                    path: path,
+                    folder: {}
+                });
+                if (path !== "") {
+                    //url += ":" + path + ":";
+                    url += ":" + path;
+                }
+                //url += "/children";
+                operation = 'PUT';
+                break;
+            case 'delete':
+                console.log('deleting a file');
+                url += ":" + path;
+                break;
+            default:
+                console.log('making something else');
+                url += ":" + path + ":/content";
+                operation = 'PUT'    
         }
         console.log("operation is: " + operation);
         new HttpFetcher(this, 'createOrDeleteEntry', {
@@ -804,6 +824,7 @@ class OneDriveClient {
             successCallback(entryMetadatas);
         } else {
             const content = contents[index];
+            console.log('createEntryMetadatas - isDirectory:' + ("folder" in content) + "YYY");
             const entryMetadata = {
                 isDirectory: ("folder" in content),
                 name: content.name,

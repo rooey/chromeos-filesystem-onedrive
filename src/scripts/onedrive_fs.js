@@ -210,6 +210,7 @@ class OneDriveFS {
     trimMetadata(options, metadata) {
         const result = {};
         if (options.isDirectory) {
+            console.log('trimMeta: ' + metadata.isDirectory);
             result.isDirectory = metadata.isDirectory;
         }
         if (options.name) {
