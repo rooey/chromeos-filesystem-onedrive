@@ -112,10 +112,12 @@ class OneDriveFS {
         const metadataCache = this.getMetadataCache(options.fileSystemId);
         const cache = metadataCache.get(options.entryPath);
         if (cache.directoryExists && cache.fileExists && !options.thumbnail) {
+            console.log('metafunc-1');
             successCallback(this.trimMetadata(options, cache.metadata));
         } else {
             onedriveClient.getMetadata(
                 options.entryPath, entryMetadata => {
+                    console.log('metafunc-2');
                     successCallback(this.trimMetadata(options, entryMetadata));
                 }, errorCallback);
         }
@@ -152,11 +154,12 @@ class OneDriveFS {
     }
 
     onMoveEntryRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.copyOrMoveEntry('moveEntry', onedriveClient, options, successCallback, errorCallback);
+        this.moveEntry('moveEntry', onedriveClient, options, successCallback, errorCallback);
     }
 
     onCopyEntryRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.copyOrMoveEntry('copyEntry', onedriveClient, options, successCallback, errorCallback);
+        console.log('oncopy - copyentry from fsjs');
+        this.copyEntry('copyEntry', onedriveClient, options, successCallback, errorCallback);
     }
 
     onWriteFileRequested(onedriveClient, options, successCallback, errorCallback) {
@@ -228,11 +231,26 @@ class OneDriveFS {
         return result;
     }
 
-    copyOrMoveEntry(operation, onedriveClient, options, successCallback, errorCallback) {
+    moveEntry(operation, onedriveClient, options, successCallback, errorCallback) {
         onedriveClient[operation](options.sourcePath, options.targetPath, () => {
             const metadataCache = this.getMetadataCache(options.fileSystemId);
             metadataCache.remove(options.sourcePath);
             metadataCache.remove(options.targetPath);
+            successCallback();
+        }, errorCallback);
+    }
+
+    copyEntry(operation, onedriveClient, options, successCallback, errorCallback) {
+        console.log('intheloop');
+        console.log(options);
+        onedriveClient[operation](options.sourcePath, options.targetPath, () => {
+            console.log('intheloop-1');
+            const metadataCache = this.getMetadataCache(options.fileSystemId);
+            console.log('intheloop-2');
+            metadataCache.remove(options.sourcePath);
+            console.log('intheloop-3');
+            metadataCache.remove(options.targetPath);
+            console.log(metadataCache);
             successCallback();
         }, errorCallback);
     }

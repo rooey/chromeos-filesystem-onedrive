@@ -88,10 +88,10 @@ class OneDriveClient {
     
                         if (this.access_token_)
                         {
+                            //let driveInfo = this.getDriveData(successCallback,errorCallback);
+                            //console.log(driveInfo);
                             this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-                            let driveData = this.getDriveData();
                             console.log("moomoofoo");
-                            console.log(driveData);
                             successCallback();
                         } else {
                             console.log("This error is here. 1");
@@ -121,8 +121,7 @@ class OneDriveClient {
     setCookie() {
         var expiration = new Date();
         expiration.setTime(expiration.getTime() + this.token_expiry_ * 1000);
-        var cookie = "odauth=" + this.access_token_ +"; refreshToken=" + this.refresh_token_ +"; path=/; expires=" + expiration.toUTCString();
-
+        var cookie = "onedriveclent=" + this.access_token_ +"; refreshToken=" + this.refresh_token_ +"; path=/; expires=" + expiration.toUTCString()+"; driveId=";
         if (document.location.protocol.toLowerCase() === "https") {
             cookie = cookie + ";secure";
         }
@@ -263,6 +262,8 @@ class OneDriveClient {
     }
 
     getMetadata(path, successCallback, errorCallback) {
+        console.log('PATH: ');
+        console.log(path);
         if (path === '/') {
             console.log('path is === /');
             successCallback({
@@ -275,15 +276,15 @@ class OneDriveClient {
         }
         const fetchingMetadataObject = this.createFetchingMetadataObject(path);
         new HttpFetcher(this, 'getMetadata', fetchingMetadataObject, fetchingMetadataObject.data, result => {
-            console.log('metadataobject - isDirectory:' + ("folder" in result) + "XXX");
+            console.log('metadataobject - isDirectory:' + ('folder' in result) + 'XXX');
             const entryMetadata = {
-                isDirectory: ("folder" in result),
+                isDirectory: ('folder' in result),
                 name: result.name,
                 size: result.size || 0,
                 modificationTime: result.server_modified ? new Date(result.server_modified) : new Date()
             };
             if (this.canFetchThumbnail(result)) {
-                const data = this.jsonStringify({
+                const data = JSON.stringify({
                     path: path,
                     format: 'jpeg',
                     size: 'w128h128'
@@ -364,7 +365,7 @@ class OneDriveClient {
     }
 
     readFile(filePath, offset, length, successCallback, errorCallback) {
-        const data = this.jsonStringify({path: filePath});
+        const data = JSON.stringify({path: filePath});
         const range = 'bytes=' + offset + '-' + (offset + length - 1);
         new HttpFetcher(this, 'readFile', {
             type: 'GET',
@@ -392,11 +393,13 @@ class OneDriveClient {
     };
 
     moveEntry(sourcePath, targetPath, successCallback, errorCallback) {
-        this.copyOrMoveEntry('move', sourcePath, targetPath, successCallback, errorCallback);
+        this.doMoveEntry('move', sourcePath, targetPath, successCallback, errorCallback);
     };
 
     copyEntry(sourcePath, targetPath, successCallback, errorCallback) {
-        this.copyOrMoveEntry('copy', sourcePath, targetPath, successCallback, errorCallback);
+        console.log('copy start');
+        this.doCopyEntry('copy', sourcePath, targetPath, successCallback, errorCallback);
+        console.log('really done copy');
     };
 
     createFile(filePath, successCallback, errorCallback) {
@@ -406,7 +409,7 @@ class OneDriveClient {
         });
         new HttpFetcher(this, 'createFile', {
             type: 'PUT',
-            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + filePath + ":/content",
+            url: 'https://graph.microsoft.com/v1.0/me/drive/root:' + filePath + ':/content',
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_,
                 'Content-Type': 'application/octet-stream'
@@ -435,6 +438,7 @@ class OneDriveClient {
     }
 
     truncate(filePath, length, successCallback, errorCallback) {
+        console.log('doing truncate');
         const data = this.jsonStringify({
             path: filePath
         });
@@ -551,7 +555,7 @@ class OneDriveClient {
                 'Content-Type': 'application/octet-stream'
             },
             processData: false,
-            data: new ArrayBuffer(),
+            data: options.data,
             dataType: 'json'
         }, data, result => {
             console.log('uploading via sumpleupload');
@@ -657,29 +661,68 @@ class OneDriveClient {
         }
     } */
 
-    copyOrMoveEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
-        var url = "https://graph.microsoft.com/v1.0/me/drive/root";
-        const data = JSON.stringify({
-            from_path: sourcePath,
-            to_path: targetPath
-        });
-        console.log('operation is below');
-        if (operation === 'copy'){
-            url += ":" + sourcePath + ":/action.copy";
-            operation = 'POST';
-        } else {
-            url += ":" + sourcePath;
-            operation = 'PATCH';
+    doCopyEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
+        var sourceLastSlashPos = sourcePath.lastIndexOf("/");
+        var sourceDir = sourcePath.substring(0, sourceLastSlashPos);
+        var targetLastSlashPos = targetPath.lastIndexOf("/");
+        var targetDir = targetPath.substring(0, targetLastSlashPos);
+        var data = {};
+        if (sourceDir !== targetDir) {
+            console.log('source is not target');
+            data.parentReference = {
+                path: '/drive/root:' + targetDir
+            };
+        }
+        new HttpFetcher(this, 'doCopyEntry', {
+            type: 'POST',
+            url: 'https://graph.microsoft.com/v1.0/me/drive/root:' + sourcePath + ':/copy',
+            headers: {
+                'Authorization': 'Bearer ' + this.access_token_,
+                'Content-Type': 'application/json',
+                'Prefer': 'respond-async'
+            },
+            data: JSON.stringify(data),
+            dataType: 'json'
+        }, data, _result => {
+            console.log('donething');
+            console.log(_result);
+            console.log(data.error);
+            successCallback();
+        }, error => {
+            if (error.status === 202) {
+                successCallback();
+            } else {
+                errorCallback();
+            }
+        }).fetch();
+        console.log('done copy');
+    }
+
+    doMoveEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
+        var sourceLastSlashPos = sourcePath.lastIndexOf("/");
+        var sourceDir = sourcePath.substring(0, sourceLastSlashPos);
+        var sourceName = sourcePath.substring(sourceLastSlashPos + 1);
+        var targetLastSlashPos = targetPath.lastIndexOf("/");
+        var targetDir = targetPath.substring(0, targetLastSlashPos);
+        var targetName = targetPath.substring(targetLastSlashPos + 1);
+        var data = {};
+        if (sourceName !== targetName) {
+            data.name = targetName;
+        }
+        if (sourceDir !== targetDir) {
+            data.parentReference = {
+                path: "/drive/root:" + targetDir
+            };
         }
 
-        new HttpFetcher(this, 'copyOrMoveEntry', {
-            type: operation,
-            url: url,
+        new HttpFetcher(this, 'doMoveEntry', {
+            type: "PATCH",
+            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + sourcePath,
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_,
                 'Content-Type': 'application/json; charset=utf-8'
             },
-            data: data,
+            data: JSON.stringify(data),
             dataType: 'json'
         }, data, _result => {
             successCallback();
@@ -826,7 +869,7 @@ class OneDriveClient {
             const content = contents[index];
             console.log('createEntryMetadatas - isDirectory:' + ("folder" in content) + "YYY");
             const entryMetadata = {
-                isDirectory: ("folder" in content),
+                isDirectory: ('folder' in content),
                 name: content.name,
                 size: content.size || 0,
                 modificationTime: content.server_modified ? new Date(content.server_modified) : new Date()

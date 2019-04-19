@@ -33,7 +33,10 @@ class HttpFetcher {
         if (status === 404 || status === 409) {
             console.debug(error);
             this.errorCallback_('NOT_FOUND');
-        } else if (status === 416) {
+        } else if (status === 202){
+            console.log('Accepted copy');
+            this.successCallback_();
+        }else if (status === 416) {
             console.debug(error);
             this.successCallback_(new ArrayBuffer(), false);
         } else if (status === 401) {
