@@ -109,6 +109,7 @@ class OneDriveFS {
     }
 
     onGetMetadataRequested(onedriveClient, options, successCallback, errorCallback) {
+        console.log('Thumbnail='+options.thumbnail);
         const metadataCache = this.getMetadataCache(options.fileSystemId);
         const cache = metadataCache.get(options.entryPath);
         if (cache.directoryExists && cache.fileExists && !options.thumbnail) {
@@ -163,6 +164,7 @@ class OneDriveFS {
     }
 
     onWriteFileRequested(onedriveClient, options, successCallback, errorCallback) {
+        console.log('onwrite:' + options);
         this.getOpenedFile(options.fileSystemId, options.openRequestId, openedFile => {
             onedriveClient.writeFile(openedFile.filePath, options.data, options.offset, options.openRequestId, () => {
                 const metadataCache = this.getMetadataCache(options.fileSystemId);

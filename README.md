@@ -10,7 +10,7 @@ File System for OneDrive provides you an ability to access to your OneDrive stor
   Go to File System for OneDrive page on Chrome WebStore
 </a>
 
-<img src="https://raw.githubusercontent.com/yoichiro/chromeos-filesystem-onedrive/master/docs/screenshot_2.png">
+<img src="https://raw.githubusercontent.com/rooey/chromeos-filesystem-onedrive/master/docs/screenshot_2.png">
 
 ## How to build
 

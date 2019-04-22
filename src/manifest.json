@@ -18,13 +18,13 @@
   "app": {
     "background": {
       "scripts": [
-	  "node_modules/jquery/dist/jquery.min.js",
-	  "node_modules/raven-js/dist/raven.js",
-	  "scripts/metadata_cache.js",
-	  "scripts/http_fetcher.js",
-          "scripts/onedrive_client.js",
-          "scripts/onedrive_fs.js",
-          "scripts/background.js"]
+	      "node_modules/jquery/dist/jquery.min.js",
+	      "node_modules/raven-js/dist/raven.js",
+	      "scripts/metadata_cache.js",
+	      "scripts/http_fetcher.js",
+        "scripts/onedrive_client.js",
+        "scripts/onedrive_fs.js",
+        "scripts/background.js"]
     }
   },
   "icons": {
@@ -34,7 +34,9 @@
     "128": "icons/128.png"
   },
   "file_system_provider_capabilities": {
-    "source": "network"
+    "source": "network",
+    "multiple_mounts": "true",
+    "watchable": "true"
   },
-  "minimum_chrome_version": "42"
+  "minimum_chrome_version": "49"
 }
