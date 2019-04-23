@@ -5,10 +5,10 @@ let storedAppInfo = null;
 let appInfo = {
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
     "clientSecret": "SECRET GOES HERE",
-    "redirectUri": chrome.identity.getRedirectURL(""),
+    "redirectUrl": chrome.identity.getRedirectURL(""),
     "scopes": "files.readwrite.all offline_access user.read",
-    "authServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-    "tokenServiceUri": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+    "authServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    "tokenServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 };
 
 //const CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
@@ -34,16 +34,16 @@ class OneDriveClient {
         }
         else {
             var appInfo = this.getAppInfo();
-            var AUTH_URL = appInfo.authServiceUri +
+            var AUTH_URL = appInfo.authServiceUrl +
                 "?client_id=" + appInfo.clientId +
                 "&response_type=code" +
-                "&redirect_uri=" + encodeURIComponent(appInfo.redirectUri);
+                "&redirect_uri=" + encodeURIComponent(appInfo.redirectUrl);
     
             if (appInfo.scopes) {
                 AUTH_URL += "&scope=" + encodeURIComponent(appInfo.scopes);
             }
-            if (appInfo.resourceUri) {
-                AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUri);
+            if (appInfo.resourceUrl) {
+                AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUrl);
             }
     
             console.log(AUTH_URL);
@@ -62,13 +62,13 @@ class OneDriveClient {
                     // Get Token via POST
                     $.ajax({
                         type: "POST",
-                        url: appInfo.tokenServiceUri,
+                        url: appInfo.tokenServiceUrl,
                         headers: {
                             "Content-Type": "application/x-www-form-urlencoded"
                         },
                         responseType: "arraybuffer",
                         data: "client_id=" + appInfo.clientId +
-                            "&redirect_uri=" + appInfo.redirectUri +
+                            "&redirect_uri=" + appInfo.redirectUrl +
                             "&client_secret=" +  appInfo.clientSecret +
                             "&code=" + codeInfo.code +
                             "&grant_type=authorization_code",
@@ -110,8 +110,46 @@ class OneDriveClient {
             })
         }
     };
+
+    refreshToken(successCallback, errorCallback){
+        this.refresh_token_ = this.getTokenFromCookie('refresh');
+        var appInfo = this.getAppInfo();
+
+        new HttpFetcher(this, 'getDriveData', {
+            type: 'POST',
+            url: appInfo.tokenServiceUrl,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            responseType: "arraybuffer",
+            data: "client_id=" + appInfo.clientId +
+                "&redirect_uri=" + appInfo.redirectUrl +
+                "&client_secret=" +  appInfo.clientSecret +
+                "&refresh_token=" + this.refresh_token_ +
+                "&grant_type=refresh_token",
+            dataType: "text"
+        }, {}, result => {
+            var tokenInfo = JSON.parse(result);
+
+            console.log("OK-result");
+            console.log(result);
+            console.log("tokenInfo");
+            console.log(tokenInfo);
+
+            // Process Token - WEAREHERE
+
+            this.access_token_ = tokenInfo.access_token;
+            this.refresh_token_ = tokenInfo.refresh_token;
+            this.token_expiry_ = parseInt(tokenInfo.expires_in);
+
+            this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
+            console.log("cookie has been set");
+
+            successCallback();
+        }, errorCallback).fetch();
+    }
     
-    refreshToken(successCallback, errorCallback) {
+    /* refreshToken(successCallback, errorCallback) {
         this.refresh_token_ = this.getTokenFromCookie('refresh');
         var appInfo = this.getAppInfo();
         console.log("AJAX Start");
@@ -120,13 +158,13 @@ class OneDriveClient {
         // Get Token via POST
         $.ajax({
             type: "POST",
-            url: appInfo.tokenServiceUri,
+            url: appInfo.tokenServiceUrl,
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
             },
             responseType: "arraybuffer",
             data: "client_id=" + appInfo.clientId +
-                "&redirect_uri=" + appInfo.redirectUri +
+                "&redirect_uri=" + appInfo.redirectUrl +
                 "&client_secret=" +  appInfo.clientSecret +
                 "&refresh_token=" + this.refresh_token_ +
                 "&grant_type=refresh_token",
@@ -160,7 +198,7 @@ class OneDriveClient {
             console.log(error);
             errorCallback(error);
         })
-    }
+    }*/
     
     getAppInfo() {
         if (storedAppInfo) {
@@ -207,21 +245,6 @@ class OneDriveClient {
 
         return "";
     };
-
-    /*
-    getTokenInfoFromJSON(jsonData) {
-        if (jsonData) {
-            console.log(jsonData);
-    
-            var tokenInfo = JSON.parse(jsonData);
-            console.log("tokenInfo");
-            console.log(tokenInfo);
-            return tokenInfo;
-        }
-        else {
-            console.log("failed to receive tokenInfo");
-        }
-    };*/
 
     getCodeFromUrl(redirectUrl) {
         if (redirectUrl) {
@@ -634,28 +657,7 @@ class OneDriveClient {
             metadata.size < 20971520 &&
             extPattern.test(metadata.name);
     }
-
-    /*
-    startSimpleUpload(options, successCallback, errorCallback) {
-        $.ajax({
-            type: "PUT",
-            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + options.filePath + ":/content",
-            dataType: "json",
-            headers: {
-                "Authorization": "Bearer " + this.access_token_,
-                "Content-Type": "application/octet-stream"
-            },
-            processData: false,
-            data: options.data
-        }).done(function(result) {
-            console.log(result);
-            successCallback();
-        }.bind(this)).fail(function(error) {
-            handleError.call(this, error, successCallback, errorCallback);
-        }.bind(this));
-    };
-    */
-
+    
     startSimpleUpload(options, successCallback, errorCallback) {
         const data = this.jsonStringify({
             close: false
