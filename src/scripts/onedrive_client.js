@@ -85,13 +85,15 @@ class OneDriveClient {
                         this.access_token_ = tokenInfo.access_token;
                         this.refresh_token_ = tokenInfo.refresh_token;
                         this.token_expiry_ = parseInt(tokenInfo.expires_in);
+
+                        console.log(this.access_token_);
     
                         if (this.access_token_)
                         {
                             //let driveInfo = this.getDriveData(successCallback,errorCallback);
                             //console.log(driveInfo);
                             this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-                            console.log("moomoofoo");
+                            console.log("cookie has been set");
                             successCallback();
                         } else {
                             console.log("This error is here. 1");
@@ -111,7 +113,10 @@ class OneDriveClient {
     
     refreshToken(successCallback, errorCallback) {
         this.refresh_token_ = this.getTokenFromCookie('refresh');
-        
+        var appInfo = this.getAppInfo();
+        console.log("AJAX Start");
+        console.log("REFRESH_TOKEN1: "+ appInfo.refreshToken);
+        console.log("REFRESH_TOKEN2: "+ this.refresh_token_);
         // Get Token via POST
         $.ajax({
             type: "POST",
@@ -132,13 +137,13 @@ class OneDriveClient {
             var tokenInfo = JSON.parse(jsonData);
             console.log("tokenInfo");
             console.log(tokenInfo);
-    
+
             // Process Token - WEAREHERE
-    
+
             this.access_token_ = tokenInfo.access_token;
             this.refresh_token_ = tokenInfo.refresh_token;
             this.token_expiry_ = parseInt(tokenInfo.expires_in);
-    
+
             if (this.access_token_)
             {
                 //let driveInfo = this.getDriveData(successCallback,errorCallback);
@@ -155,8 +160,7 @@ class OneDriveClient {
             console.log(error);
             errorCallback(error);
         })
-    };
-
+    }
     
     getAppInfo() {
         if (storedAppInfo) {
@@ -176,13 +180,16 @@ class OneDriveClient {
         }
 
         document.cookie = cookie;
-    };
+    };  
 
     getTokenFromCookie(type) {
         var cookies = document.cookie;
         var name = type + "Token=";
+        console.log('cookies:::');
+        console.log(cookies);
+        console.log(name);
         var start = cookies.indexOf(name);
-        console.log('getting Token type: ' + type);
+        console.log('I am getting Token type: ' + type);
         if (start >= 0) {
             start += name.length;
             var end = cookies.indexOf(';', start);
