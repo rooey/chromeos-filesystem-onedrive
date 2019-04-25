@@ -20,6 +20,7 @@ class OneDriveClient {
     constructor(onedriveFS) {
         this.onedrive_fs_ = onedriveFS;
         this.access_token_ = null;
+        this.refresh_token_ = null;
         this.uid_ = null;
         this.writeRequestMap = {};
         this.initializeJQueryAjaxBinaryHandler();
@@ -30,6 +31,7 @@ class OneDriveClient {
     authorize(successCallback, errorCallback) {
         this.access_token_ = this.getTokenFromCookie('access');
         if (this.access_token_) {
+            console.log('already good');
             successCallback();
         }
         else {
@@ -37,13 +39,14 @@ class OneDriveClient {
             var AUTH_URL = appInfo.authServiceUrl +
                 "?client_id=" + appInfo.clientId +
                 "&response_type=code" +
+                "&prompt=select_account" +
                 "&redirect_uri=" + encodeURIComponent(appInfo.redirectUrl);
     
             if (appInfo.scopes) {
                 AUTH_URL += "&scope=" + encodeURIComponent(appInfo.scopes);
             }
-            if (appInfo.resourceUrl) {
-                AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUrl);
+            if (appInfo.resourceUri) {
+                AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUri);
             }
     
             console.log(AUTH_URL);
@@ -114,91 +117,76 @@ class OneDriveClient {
     refreshToken(successCallback, errorCallback){
         this.refresh_token_ = this.getTokenFromCookie('refresh');
         var appInfo = this.getAppInfo();
+        var fileSystemId = 'onedrivefs://' + this.uid_;
 
-        new HttpFetcher(this, 'getDriveData', {
-            type: 'POST',
-            url: appInfo.tokenServiceUrl,
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            responseType: "arraybuffer",
-            data: "client_id=" + appInfo.clientId +
-                "&redirect_uri=" + appInfo.redirectUrl +
-                "&client_secret=" +  appInfo.clientSecret +
-                "&refresh_token=" + this.refresh_token_ +
-                "&grant_type=refresh_token",
-            dataType: "text"
-        }, {}, result => {
-            var tokenInfo = JSON.parse(result);
+        console.log('appInfo:');
+        console.log(appInfo);
 
-            console.log("OK-result");
-            console.log(result);
-            console.log("tokenInfo");
-            console.log(tokenInfo);
+        console.log('fileSystemId:')
+        console.log(fileSystemId);
 
-            // Process Token - WEAREHERE
+        this.onedrive_fs_.getMountedCredential(fileSystemId, credential => {
+            if (credential) {
+                console.log('credentials:');
+                console.log(credential);
+                this.setTokens(credential.accessToken, credential.refreshToken);
+                //this.access_token_ = credential.accessToken;
+                //this.refresh_token_ = credential.refreshToken;
 
-            this.access_token_ = tokenInfo.access_token;
-            this.refresh_token_ = tokenInfo.refresh_token;
-            this.token_expiry_ = parseInt(tokenInfo.expires_in);
+                var data = "client_id=" + appInfo.clientId +
+                    "&scope=files.readwrite.all offline_access user.read" +
+                    "&refresh_token=" + this.refresh_token_ + 
+                    "&redirect_uri=" + appInfo.redirectUrl +
+                    "&grant_type=refresh_token" +
+                    "&client_secret=" + appInfo.clientSecret;
 
-            this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-            console.log("cookie has been set");
+                console.log('dataXXFssL');
+                console.log(data);
+                new HttpFetcher(this, 'refreshToken', {
+                    type: 'POST',
+                    url: appInfo.tokenServiceUrl,
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    responseType: "arraybuffer",
+                    data: data,
+                    dataType: "text"
 
-            successCallback();
-        }, errorCallback).fetch();
-    }
-    
-    /* refreshToken(successCallback, errorCallback) {
-        this.refresh_token_ = this.getTokenFromCookie('refresh');
-        var appInfo = this.getAppInfo();
-        console.log("AJAX Start");
-        console.log("REFRESH_TOKEN1: "+ appInfo.refreshToken);
-        console.log("REFRESH_TOKEN2: "+ this.refresh_token_);
-        // Get Token via POST
-        $.ajax({
-            type: "POST",
-            url: appInfo.tokenServiceUrl,
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            responseType: "arraybuffer",
-            data: "client_id=" + appInfo.clientId +
-                "&redirect_uri=" + appInfo.redirectUrl +
-                "&client_secret=" +  appInfo.clientSecret +
-                "&refresh_token=" + this.refresh_token_ +
-                "&grant_type=refresh_token",
-            dataType: "text"
-        }).done(jsonData => {
-            console.log("OK-jsonData");
-            console.log(jsonData);
-            var tokenInfo = JSON.parse(jsonData);
-            console.log("tokenInfo");
-            console.log(tokenInfo);
-
-            // Process Token - WEAREHERE
-
-            this.access_token_ = tokenInfo.access_token;
-            this.refresh_token_ = tokenInfo.refresh_token;
-            this.token_expiry_ = parseInt(tokenInfo.expires_in);
-
-            if (this.access_token_)
-            {
-                //let driveInfo = this.getDriveData(successCallback,errorCallback);
-                //console.log(driveInfo);
-                this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-                console.log("moomoofoo");
-                successCallback();
-            } else {
-                console.log("This error is here. 1");
-                errorCallback("failed to get an access token ");
+                }, {}, result => {
+                    if (result) {
+                        var tokenInfo = JSON.parse(result);
+        
+                        console.log("OK-result");
+                        console.log(result);
+                        console.log("tokenInfo");
+                        console.log(tokenInfo);
+        
+                        // Process Token - WEAREHERE
+        
+                        this.access_token_ = tokenInfo.access_token;
+                        this.refresh_token_ = tokenInfo.refresh_token;
+                        this.token_expiry_ = parseInt(tokenInfo.expires_in);
+                        
+                        this.onedrive_fs_.registerMountedCredential(
+                            fileSystemId, this.access_token_, this.refresh_token_, () => {
+                            successCallback();
+                        });
+                        this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
+                        console.log("cookie has been set");
+        
+                        successCallback();
+                    }
+                    else {
+                        this.unmountByAccessTokenExpired();
+                        errorCallback('REFRESH_TOKEN_FAILED');
+                    }
+                }, errorCallback).fetch();
             }
-        }).fail(error => {
-            console.log("AJAX Failed");
-            console.log(error);
-            errorCallback(error);
-        })
-    }*/
+            else {
+                errorCallback('CREDENTIAL_NOT_FOUND');
+            }
+        });
+    }
     
     getAppInfo() {
         if (storedAppInfo) {
@@ -263,12 +251,18 @@ class OneDriveClient {
         }
     };
 
-    getAccessToken() {
-        return this.access_token_;
+    getToken(type) {
+        switch(type){
+            case 'refreshToken':
+                return this.refresh_token_;
+            default:
+                return this.access_token_;
+        }
     };
 
-    setAccessToken(accessToken) {
+    setTokens(accessToken, refreshToken) {
         this.access_token_ = accessToken;
+        this.refresh_token_ = refreshToken;
     };
 
     unauthorize(successCallback, errorCallback) {
@@ -393,58 +387,6 @@ class OneDriveClient {
             }
         }, errorCallback).fetch();
     }
-
-    /*
-    getMetadata(path, successCallback, errorCallback) {
-        console.log('PATH: ');
-        console.log(path);
-        if (path === '/') {
-            console.log('path is === /');
-            successCallback({
-                isDirectory: true,
-                name: '',
-                size: 0,
-                modificationTime: new Date()
-            });
-            return;
-        }
-        const fetchingMetadataObject = this.createFetchingMetadataObject(path);
-        new HttpFetcher(this, 'getMetadata', fetchingMetadataObject, fetchingMetadataObject.data, result => {
-            console.log('metadataobject - isDirectory:' + ('folder' in result) + 'XXX');
-            const entryMetadata = {
-                isDirectory: ('folder' in result),
-                name: result.name,
-                size: result.size || 0,
-                modificationTime: result.server_modified ? new Date(result.server_modified) : new Date()
-            };
-            if (this.canFetchThumbnail(result)) {
-                const data = JSON.stringify({
-                    path: path,
-                    format: 'jpeg',
-                    size: 'w128h128'
-                });
-                new HttpFetcher(this, 'get_thumbnail', {
-                    type: 'GET',
-                    url: 'https://graph.microsoft.com/v1.0/me/drive/root:' + path + ':/thumbnails/0/medium/content',
-                    headers: {
-                        'Authorization': 'Bearer ' + this.access_token_,
-                    },
-                    dataType: 'binary',
-                    responseType: 'arraybuffer'
-                }, data, image => {
-                    const fileReader = new FileReader();
-                    const blob = new Blob([image], {type: 'image/jpeg'});
-                    fileReader.onload = e => {
-                        entryMetadata.thumbnail = e.target.result;
-                        successCallback(entryMetadata);
-                    };
-                    fileReader.readAsDataURL(blob);
-                }, errorCallback).fetch();
-            } else {
-                successCallback(entryMetadata);
-            }
-        }, errorCallback).fetch();
-    }*/
 
     readDirectory(path, successCallback, errorCallback) {
         const fetchingListFolderObject = this.createFetchingListFolderObject(path === '/' ? '' : path);

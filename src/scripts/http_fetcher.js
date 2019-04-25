@@ -43,8 +43,8 @@ class HttpFetcher {
             console.error(error);
             // Access token has already expired or unauthorized. Attempt to refresh.
             this.onedrive_client_.refreshToken(() => {
-                console.log('refresh was a success possibly?');
-                this.successCallback();
+                console.log('token refreshed');
+                this.successCallback_();
             }, this.errorCallback_('INVALID_OPERATION'));
         } else if (status === 429) {
             const retryAfter = error.getResponseHeader('Retry-After');

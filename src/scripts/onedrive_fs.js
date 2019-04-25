@@ -47,7 +47,7 @@ class OneDriveFS {
                                     openedFilesLimit: Number(openedFilesLimit)
                                 }, () => {
                                     this.registerMountedCredential(
-                                        driveInfo.id, onedriveClient.getAccessToken(), () => {
+                                        driveInfo.id, onedriveClient.getToken('accessToken'), onedriveClient.getToken('refreshToken'), () => {
                                         successCallback();
                                     });
                                 });
@@ -73,7 +73,7 @@ class OneDriveFS {
         this.getMountedCredential(fileSystemId, credential => {
             if (credential) {
                 const onedriveClient = new OneDriveClient(this);
-                onedriveClient.setAccessToken(credential.accessToken);
+                onedriveClient.setTokens(credential.accessToken, credential.refreshToken);
                 onedriveClient.setUid(credential.uid);
                 this.onedrive_client_map_[fileSystemId] = onedriveClient;
                 console.log('resume - end');
@@ -293,12 +293,13 @@ class OneDriveFS {
         );
     }
 
-    registerMountedCredential(uid, accessToken, callback) {
+    registerMountedCredential(uid, accessToken, refreshToken, callback) {
         const fileSystemId = this.createFileSystemID(uid);
         chrome.storage.local.get('credentials', items => {
             const credentials = items.credentials || {};
             credentials[fileSystemId] = {
                 accessToken: accessToken,
+                refreshToken: refreshToken,
                 uid: uid
             };
             chrome.storage.local.set({

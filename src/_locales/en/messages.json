@@ -20,7 +20,7 @@
     "description": "Microsoft Account management."
   },
   "configManageLinkText": {
-    "message": "Manage Linked Applications",
+    "message": "Manage Linked Applications  ",
     "description": "Link to Microsoft Account permissions page."
   },
   "configSyncFilesText": {
