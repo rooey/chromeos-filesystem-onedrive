@@ -42,7 +42,7 @@ class OneDriveFS {
                                 const openedFilesLimit = settings.openedFilesLimit || '10';
                                 chrome.fileSystemProvider.mount({
                                     fileSystemId: fileSystemId,
-                                    displayName: FILE_SYSTEM_NAME + ' (' + userInfo.displayName +' - '+ driveInfo.type + ')',
+                                    displayName: FILE_SYSTEM_NAME + ' ' + driveInfo.type +' ('+ userInfo.displayName + ')',
                                     writable: true,
                                     openedFilesLimit: Number(openedFilesLimit)
                                 }, () => {

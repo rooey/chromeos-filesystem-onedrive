@@ -118,11 +118,15 @@ class OneDriveClient {
         this.refresh_token_ = this.getTokenFromCookie('refresh');
         var appInfo = this.getAppInfo();
         var fileSystemId = 'onedrivefs://' + this.uid_;
+        var thisvalue = this.onedrive_fs_.fileSystemId;
+
+        console.log('thisvalue:');
+        console.log(thisvalue);
 
         console.log('appInfo:');
         console.log(appInfo);
 
-        console.log('fileSystemId:')
+        console.log('fileSystemId:');
         console.log(fileSystemId);
 
         this.onedrive_fs_.getMountedCredential(fileSystemId, credential => {

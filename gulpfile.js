@@ -39,7 +39,7 @@ gulp.task('copy-files', gulp.parallel('copy-src-files', 'copy-dependent-files'))
 gulp.task('package', () => {
   const manifest = require('./dist/manifest.json');
   const version = manifest.version;
-  return gulp.src('./dist/**/*').pipe(zip(`chromeos-filesystem-dropbox-${version}.zip`)).pipe(gulp.dest('./package'));
+  return gulp.src('./dist/**/*').pipe(zip(`chromeos-filesystem-onedrive-${version}.zip`)).pipe(gulp.dest('./package'));
 });
 
 gulp.task('watch', () => {
