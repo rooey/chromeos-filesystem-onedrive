@@ -439,6 +439,8 @@ class OneDriveFS {
             this.metadata_cache_[fileSystemId] = metadataCache;
             console.log('getMetadataCache: Created. ' + fileSystemId);
         }
+        console.log('metadatacache is');
+        console.log(metadataCache);
         return metadataCache;
     };
 
@@ -514,7 +516,8 @@ class OneDriveFS {
             onedriveClient.readDirectory(entryPath, entries => {
                 const metadataCache = this.getMetadataCache(fileSystemId);
                 const currentList = entries;
-                const oldList = metadataCache.dir(entryPath) || {};
+                const oldList = metadataCache.directories_[entryPath] || {};
+                console.log('its all good now');
                 const nameSet = new Set();
                 for (let i = 0; i < currentList.length; i++) {
                     const current = currentList[i];
