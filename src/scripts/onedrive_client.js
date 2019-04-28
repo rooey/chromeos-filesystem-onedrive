@@ -361,7 +361,7 @@ class OneDriveClient {
                 isDirectory: ('folder' in result),
                 name: result.name,
                 size: result.size || 0,
-                modificationTime: result.server_modified ? new Date(result.server_modified) : new Date()
+                modificationTime: result.lastModifiedDateTime ? new Date(result.lastModifiedDateTime) : new Date()
             };
             if (this.canFetchThumbnail(result)) {
                 const data = JSON.stringify({
@@ -933,7 +933,7 @@ class OneDriveClient {
                 isDirectory: ('folder' in content),
                 name: content.name,
                 size: content.size || 0,
-                modificationTime: content.server_modified ? new Date(content.server_modified) : new Date()
+                modificationTime: content.lastModifiedDateTime ? new Date(content.lastModifiedDateTime) : new Date()
             };
             entryMetadatas.push(entryMetadata);
             this.createEntryMetadatas(contents, ++index, entryMetadatas, successCallback, errorCallback);
