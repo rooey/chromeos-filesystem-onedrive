@@ -101,24 +101,23 @@ This script defines a OneDriveFS class. The OneDriveFS instance is created by th
 
 This script provides an ability to communicate with OneDrive API server. That is, this script uses each OneDrive API to treat user's directories/files. For instance, [OneDrive API v2](https://www.onedrive.com/developers/documentation/http/overview) is used.
 
-OAuth2 Implicit Grant flow is used to identify a user. But, this script doesn't use the OneDrive OAuth2 Implicit Grant flow directly. Instead, uses [chrome.identity](https://developer.chrome.com/extensions/identity) API.
+This software uses the [chrome.identity](https://developer.chrome.com/extensions/identity) API to call the Microsoft Azure oAuth 2.0 token flow: (Code ---> Token ---> Refresh Token)
 
-Basically, there are functions corresponding to each OneDrive API.
+There are additional functions corresponding to various parts of the MS Graph API:
 
-* authorize() - [/oauth2/authorize](https://www.onedrive.com/developers/documentation/http/documentation)
-* unauthorize() - [/token/revoke](https://www.onedrive.com/developers/documentation/http/documentation#auth-token-revoke)
-* getUserInfo() - [/users/get_current_account](https://www.onedrive.com/developers/documentation/http/documentation#users-get_current_account)
-* getMetadata() - [/files/get_metadata](https://www.onedrive.com/developers/documentation/http/documentation#files-get_metadata)
-* readDirectory() - [/files/list_folder](https://www.onedrive.com/developers/documentation/http/documentation#files-list_folder) [files/list_folder/continue](https://www.onedrive.com/developers/documentation/http/documentation#files-list_folder-continue)
-* closeFile() - [/files/upload_session/finish](https://www.onedrive.com/developers/documentation/http/documentation#files-upload_session-finish)
-* readFile() - [/files/download](https://www.onedrive.com/developers/documentation/http/documentation#files-download)
-* createDirectory() - [/files/create_folder](https://www.onedrive.com/developers/documentation/http/documentation#files-create_folder)
-* deleteEntry() - [/files/delete](https://www.onedrive.com/developers/documentation/http/documentation#files-delete)
-* moveEntry() - [/files/move](https://www.onedrive.com/developers/documentation/http/documentation#files-move)
-* copyEntry() - [/files/copy](https://www.onedrive.com/developers/documentation/http/documentation#files-copy)
-* createFile() - [/files/upload](https://www.onedrive.com/developers/documentation/http/documentation#files-upload)
-* writeFile() - [/files/upload_session/start](https://www.onedrive.com/developers/documentation/http/documentation#files-upload_session-start) [/files/upload_session/append_v2](https://www.onedrive.com/developers/documentation/http/documentation#files-upload_session-append_v2)
-* truncate() - [/files/upload_session/start](https://www.onedrive.com/developers/documentation/http/documentation#files-upload_session-start) [/files/upload_session/append_v2](https://www.onedrive.com/developers/documentation/http/documentation#files-upload_session-append_v2) [/files/upload_session/finish](https://www.onedrive.com/developers/documentation/http/documentation#files-upload_session-finish) 
+* authorize() - [/oauth2/v2.0/authorize](https://docs.microsoft.com/en-us/graph/auth-overview)
+* getUserInfo() - [/me](https://docs.microsoft.com/en-us/graph/api/user-get?view=graph-rest-1.0)
+* getDriveData() - [/me/drive](https://docs.microsoft.com/en-us/graph/api/drive-get?view=graph-rest-1.0)
+* getMetadata() - [/thumbnails](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_list_thumbnails?view=odsp-graph-online)
+* readDirectory() - [/children](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_list_children?view=odsp-graph-online)
+* readFile() - [driveitem_get_content](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_get_content?view=odsp-graph-online)
+* createDirectory() - [driveitem_post_children](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_post_children?view=odsp-graph-online)
+* deleteEntry() - [driveitem_delete](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_delete?view=odsp-graph-online)
+* moveEntry() - [driveitem_move](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_move?view=odsp-graph-online)
+* copyEntry() - [driveitem_copy](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_copy?view=odsp-graph-online)
+* createFile() - [driveitem_put_content](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_put_content?view=odsp-graph-online)
+* writeFile() - [upload_session-start](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_createuploadsession?view=odsp-graph-online)
+* truncate() - [upload_session-start](https://docs.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_createuploadsession?view=odsp-graph-online)
 
 ### [/src/scripts/metadata_cache.js](https://github.com/rooey/chromeos-filesystem-onedrive/blob/master/src/scripts/metadata_cache.js)
 
