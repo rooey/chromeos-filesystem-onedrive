@@ -77,7 +77,7 @@ This script file is an implementation for [chrome.fileSystemProvider](https://de
 * Caching fetched meta data. For instance, Each meta data fetched is stored into [/src/scripts/metadata_cache.js](https://github.com/rooey/chromeos-filesystem-onedrive/blob/master/src/scripts/metadata_cache.js). This script improves a performance using the cache mechanism.
 * This software has an ability to mount multiple accounts of OneDrive at the same time. Each connection is represented by OneDriveClient class defined in [/src/scripts/onedrive_client.js](https://github.com/rooey/chromeos-filesystem-onedrive/blob/master/src/scripts/onedrive_client.js). This script manages multiple OneDriveClient instances.
 
-This script defines a OneDriveFS class. The OneDriveFS instance is created by the background.js. This script never communicate to OneDrive API server. Instead, this script delegates them to the onedrive_client.js script. That is, this script has a responsibility of handling FSP events and proxying them to the onedrive_client.js script.
+This script defines a OneDriveFS class. The OneDriveFS instance is created by the background.js. This script never communicates to MS Graph API server. Instead, this script delegates them to the onedrive_client.js script. That is, this script has a responsibility of handling FSP events and proxying them to the onedrive_client.js script.
 
 * mount() - OneDriveClient#authorize(), OneDriveClient#getUserInfo()
 * onReadDirectoryRequested() - OneDriveClient#readDirectory()
@@ -95,7 +95,7 @@ This script defines a OneDriveFS class. The OneDriveFS instance is created by th
 
 ### [/src/scripts/onedrive_client.js](https://github.com/rooey/chromeos-filesystem-onedrive/blob/master/src/scripts/onedrive_client.js)
 
-This script provides an ability to communicate with OneDrive API server. That is, this script uses each OneDrive API to treat user's directories/files. For instance, [OneDrive API v2](https://www.onedrive.com/developers/documentation/http/overview) is used.
+This script provides the ability to communicate with the MS GRAPH API server. That is, this script calls the MS GRAP API to access user's directories/files. In this software, [MS Graph API v1.0](https://docs.microsoft.com/en-us/graph/api/overview?view=graph-rest-1.0) is used.
 
 This software uses the [chrome.identity](https://developer.chrome.com/extensions/identity) API to call the Microsoft Azure oAuth 2.0 token flow: (Code ---> Token ---> Refresh Token)
 
