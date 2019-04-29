@@ -12,7 +12,7 @@ This document describes the code structure of this respoistory.  Here we explain
 * [/src/styles](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/styles) - There one contains the css style sheet definition file.
 * [/docs](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/docs) - This folder contains the documentation - including this page!
 
-At least, if you're a programmer, first you should enter the /src/scripts directory and see each JavaScript files to understand this app's behaviors.
+If you're a programmer, you should start in the /src/scripts directory and take a look at each of the JavaScript files to understand this app's behavior.
 
 # Files
 
