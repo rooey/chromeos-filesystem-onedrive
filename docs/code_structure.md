@@ -1,18 +1,18 @@
 # Code Structure
 
-This document describes you code structure of this software. Mainly, I write down about the directory structure and the purpose of each file.
+This document describes the code structure of this respoistory.  Here we explain the purpose of the main directory structure and files.
 
 # Directories
 
 * [/](https://github.com/rooey/chromeos-filesystem-onedrive) - Build files, Configuration files, and etc.
 * [/src](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src) - This directory has one HTML file and the manifest.json file.
-* [/src/_locales/en](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/_locales/en) - There is one message resource file for English.
+* [/src/_locales/en](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/_locales/en) - There is currently only one message resource file for English.
 * [/src/icons](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/icons) - This directory has some image files.
 * [/src/scripts](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/scripts) - There are some JavaScript files.
-* [/src/styles](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/styles) - There is one css style sheet definition file.
-* [/docs](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/docs) - Currently, there is one image file which is referenced by the README.md file.
+* [/src/styles](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/src/styles) - There one contains the css style sheet definition file.
+* [/docs](https://github.com/rooey/chromeos-filesystem-onedrive/tree/master/docs) - This folder contains the documentation - including this page!
 
-At least, if you are a programmer, first you should enter the /app/scripts directory and see each JavaScript files to understand this app's behaviors.
+At least, if you're a programmer, first you should enter the /src/scripts directory and see each JavaScript files to understand this app's behaviors.
 
 # Files
 
