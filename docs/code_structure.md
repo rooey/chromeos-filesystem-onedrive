@@ -62,10 +62,6 @@ When this event fired, the onClickedBtnSettings() function is called. This funct
 
 When this event fired, the onChangedOpenedFilesLimit() function is called. In the function, the selected value is stored with the chrome.storage.local API.
 
-#### Other
-
-If a current date is on December, this script shows you a special image.
-
 ### [/src/scripts/background.js](https://github.com/rooey/chromeos-filesystem-onedrive/blob/master/src/scripts/background.js)
 
 This is a background page script. Mainly, this script has a responsibility of launching the window when users want to mount the OneDrive. Also, this script has an ability to receive the message from the window.js script. When the message received, this script delegates the request of mounting the OneDrive to the [/src/scripts/onedrive_fs.js](https://github.com/rooey/chromeos-filesystem-onedrive/blob/master/src/scripts/onedrive_fs.js) script. Especially, this script has one OneDriveFS instance.
