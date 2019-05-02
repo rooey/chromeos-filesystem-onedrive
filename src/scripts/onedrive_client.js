@@ -4,14 +4,14 @@ let storedAppInfo = null;
 
 let appInfo = {
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
-    "clientSecret": "SECRET GOES HERE",
+    "clientSecret": "wetcQA3[)aosEYTCG6979?]",
     "redirectUrl": chrome.identity.getRedirectURL(""),
     "scopes": "files.readwrite.all offline_access user.read",
     "authServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     "tokenServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 };
 
-//const CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
+const CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
 
 class OneDriveClient {
 
@@ -507,13 +507,10 @@ class OneDriveClient {
         if (writeRequest.uploadId) {
             this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
         } else {
-            this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
-/*
             this.startUploadSession(sessionId => {
                 writeRequest.uploadId = sessionId;
                 this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
             }, errorCallback);
-*/
         }
     }
 
@@ -532,7 +529,7 @@ class OneDriveClient {
             dataType: 'binary',
             responseType: 'arraybuffer'
         }, data, data => {
-            /*this.startUploadSession(sessionId => {*/
+            this.startUploadSession(sessionId => {
                 if (length < data.byteLength) {
                     // Truncate
                     const req = {
@@ -540,13 +537,13 @@ class OneDriveClient {
                         data: data.slice(0, length),
                         offset: 0,
                         sentBytes: 0,
-                        //uploadId: sessionId,
+                        uploadId: sessionId,
                         hasMore: true,
                         needCommit: true,
                         openRequestId: null
                     };
-                    this.startSimpleUpload(req, successCallback, errorCallback);
-                    //this.sendContents(req, successCallback, errorCallback);
+                    //this.startSimpleUpload(req, successCallback, errorCallback);
+                    this.sendContents(req, successCallback, errorCallback);
                 } else {
                     // Pad with null bytes.
                     const diff = length - data.byteLength;
@@ -558,17 +555,17 @@ class OneDriveClient {
                             data: reader.result,
                             offset: 0,
                             sentBytes: 0,
-                            //uploadId: sessionId,
+                            uploadId: sessionId,
                             hasMore: true,
                             needCommit: true,
                             openRequestId: null
                         };
-                        this.startSimpleUpload(req, successCallback, errorCallback);
-                        //this.sendContents(req, successCallback, errorCallback);
+                        //this.startSimpleUpload(req, successCallback, errorCallback);
+                        this.sendContents(req, successCallback, errorCallback);
                     });
                     reader.readAsArrayBuffer(blob);
                 }
-           /* }, errorCallback);*/
+            }, errorCallback);
         }, errorCallback).fetch();
     }
 
@@ -591,8 +588,7 @@ class OneDriveClient {
             needCommit: false,
             openRequestId: openRequestId
         };
-        //this.sendContents(req, successCallback, errorCallback);
-        this.startSimpleUpload(req, successCallback, errorCallback);
+        this.sendContents(req, successCallback, errorCallback);
     }
 
     canFetchThumbnail(metadata) {
@@ -603,7 +599,77 @@ class OneDriveClient {
             metadata.size < 20971520 &&
             extPattern.test(metadata.name);
     }
-    
+        
+    startUploadSession(successCallback, errorCallback) {
+        const data = this.jsonStringify({
+            close: false
+        });
+        console.log('STARTINGUPLOADSESSION');
+        console.log(this);
+        new HttpFetcher(this, 'startUploadSession', {
+            type: 'POST',
+            url: "https://graph.microsoft.com/v1.0/me/drive/items/" + this + "/createUploadSession",
+            headers: {
+                'Authorization': 'Bearer ' + this.access_token_,
+                'Content-Type': 'application/json'
+            },
+            item: {
+                "@odata.type": "microsoft.graph.driveItemUploadableProperties",
+                "@microsoft.graph.conflictBehavior": "replace"
+            },
+        }, data, result => {
+            console.log('creating upload session');
+            console.log(result);
+            options.uploadUrl = result.uploadUrl;
+            this.sendContents.call(this, options, successCallback, errorCallback);
+            successCallback(options);
+        }, errorCallback).fetch();
+    }
+
+    sendContents(options, successCallback, errorCallback) {
+        if (!options.hasMore) {
+            successCallback();
+        } else {
+            var len = options.data.byteLength;
+            var remains = len - options.sentBytes;
+            var sendLength = Math.min(CHUNK_SIZE, remains);
+            var more = (options.sentBytes + sendLength) < len;
+            var sendBuffer = options.data.slice(options.sentBytes, sendLength);
+            $.ajax({
+                type: "PUT",
+                url: options.uploadUrl,
+                dataType: "json",
+                headers: {
+                    "Authorization": "Bearer " + this.access_token_,
+                    "Content-Range": "bytes " + options.offset + "-" + (options.offset + sendLength - 1) + "/" + len
+                    //"Content-Type": "application/octet-stream"
+                },
+                processData: false,
+                data: sendBuffer
+            }).done(result => {
+                console.log(result);
+                var writeRequest = this.writeRequestMap[options.openRequestId];
+                if (writeRequest) {
+                    writeRequest.uploadId = result.upload_id;
+                }
+                var req = {
+                    filePath: options.filePath,
+                    data: options.data,
+                    offset: options.offset + sendLength,
+                    sentBytes: options.sendBytes + sendLength,
+                    uploadId: result.upload_id,
+                    hasMore: more,
+                    openRequestId: options.openRequestId,
+                    uploadUrl: options.uploadUrl
+                };
+                this.sendContents.call(this, req, successCallback, errorCallback);
+            }).fail(error => {
+                console.log(error);
+            }, errorCallback);
+        }
+    };
+
+    /*
     startSimpleUpload(options, successCallback, errorCallback) {
         const data = this.jsonStringify({
             close: false
@@ -625,30 +691,9 @@ class OneDriveClient {
             successCallback(sessionId);
         }, errorCallback).fetch();
     }
-
+    */
 
     /*
-    startUploadSession(successCallback, errorCallback) {
-        const data = this.jsonStringify({
-            close: false
-        });
-        new HttpFetcher(this, 'startUploadSession', {
-            type: 'POST',
-            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + options.filePath + ":/content",
-            headers: {
-                'Authorization': 'Bearer ' + this.access_token_,
-                'Content-Type': 'application/octet-stream'
-            },
-            processData: false,
-            data: new ArrayBuffer(),
-            dataType: 'json'
-        }, data, result => {
-            console.log(result);
-            const sessionId = result.session_id;
-            successCallback(sessionId);
-        }, errorCallback).fetch();
-    }
-
     sendContents(options, successCallback, errorCallback) {
         if (!options.hasMore) {
             if (options.needCommit) {
