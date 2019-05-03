@@ -4,7 +4,7 @@ let storedAppInfo = null;
 
 let appInfo = {
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
-    "clientSecret": "wetcQA3[)aosEYTCG6979?]",
+    "clientSecret": "SECRET GOES HERE",
     "redirectUrl": chrome.identity.getRedirectURL(""),
     "scopes": "files.readwrite.all offline_access user.read",
     "authServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
