@@ -403,9 +403,10 @@
     };
 
     OneDriveClient.prototype.getMetadata = function(path, successCallback, errorCallback) {
-        var url = "https://graph.microsoft.com/v1.0/me/drive/root";
+        var url = "https://graph.microsoft.com/v1.0/me/drive/root:" + path + ":/thumbnails/0/medium/content";
+
         if (path !== "/") {
-            url += ":" + path;
+            //url += ":" + path;
         }
         $.ajax({
             type: "GET",
