@@ -182,11 +182,20 @@
     };
 
     OneDriveClient.prototype.refreshToken = function(successCallback, errorCallback) {
+        this.refresh_token_ = OneDriveClient.prototype.getRefreshTokenFromCookie();
         var appInfo = OneDriveClient.prototype.getAppInfo();
-        console.log("appInfo");
+
+        var fileSystemId = 'onedrivefs://' + this.uid_;
+        var thisvalue = this.onedrive_fs_.fileSystemId;
+
+        console.log('thisvalue:');
+        console.log(thisvalue);
+
+        console.log('appInfo:');
         console.log(appInfo);
 
-        this.refresh_token_ = OneDriveClient.prototype.getRefreshTokenFromCookie();
+        console.log('fileSystemId:');
+        console.log(fileSystemId);
 
         // Get Refresh Token via POST
         $.ajax({
@@ -381,12 +390,18 @@
         storedAppInfo = obj;
     };
 
-    OneDriveClient.prototype.getAccessToken = function() {
-        return this.access_token_;
+    OneDriveClient.prototype.getToken = function(type) {
+        switch(type){
+            case 'refreshToken':
+                return this.refresh_token_;
+            default:
+                return this.access_token_;
+        }
     };
 
-    OneDriveClient.prototype.setAccessToken = function(accessToken) {
+    OneDriveClient.prototype.setTokens = function(accessToken, refreshToken) {
         this.access_token_ = accessToken;
+        this.refresh_token_ = refreshToken;
     };
 
     OneDriveClient.prototype.unauthorize = function(successCallback, errorCallback) {
@@ -403,10 +418,10 @@
     };
 
     OneDriveClient.prototype.getMetadata = function(path, successCallback, errorCallback) {
-        var url = "https://graph.microsoft.com/v1.0/me/drive/root:" + path + ":/thumbnails/0/medium/content";
+        var url = "https://graph.microsoft.com/v1.0/me/drive/root";
 
         if (path !== "/") {
-            //url += ":" + path;
+            url += ":" + path;
         }
         $.ajax({
             type: "GET",

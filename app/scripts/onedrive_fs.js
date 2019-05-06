@@ -58,7 +58,8 @@
                             errorCallback(lastError);
                         } else {
                             var config = {
-                                accessToken: this.onedrive_client_.getAccessToken()
+                                accessToken: this.onedrive_client_.getToken('accessToken'),
+                                refreshToken: this.onedrive_client_.getToken('refreshToken')
                             };
                             chrome.storage.local.set(config, function() {
                                 successCallback();
@@ -77,10 +78,17 @@
         if (!this.onedrive_client_) {
             chrome.storage.local.get("accessToken", function(items) {
                 var accessToken = items.accessToken;
-                if (accessToken) {
-                    this.onedrive_client_ = new OneDriveClient(this);
-                    this.onedrive_client_.setAccessToken(accessToken);
-                    this.onedrive_client_.prototype.refreshToken(this);
+            }.bind(this));
+            chrome.storage.local.get("refreshToken", function(items) {
+                var refreshToken = items.refreshToken;
+                if (refreshToken) {
+                    if (accessToken) {
+                        this.onedrive_client_ = new OneDriveClient(this);
+                        this.onedrive_client_.setTokens(accessToken, refreshToken);
+                        successCallback();
+                    } else {
+                        errorCallback("ACCESS_TOKEN_NOT_FOUND");
+                    }
                     successCallback();
                 } else {
                     errorCallback("ACCESS_TOKEN_NOT_FOUND");
@@ -222,6 +230,9 @@
                 fileSystemId: FILE_SYSTEM_ID
             }, function() {
                 chrome.storage.local.remove("accessToken", function() {
+                    callback();
+                }.bind(this));
+                chrome.storage.local.remove("refreshToken", function() {
                     callback();
                 }.bind(this));
             }.bind(this));
