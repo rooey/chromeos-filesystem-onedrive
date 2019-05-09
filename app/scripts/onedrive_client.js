@@ -223,6 +223,15 @@
             this.access_token_ = tokenInfo.access_token;
             this.refresh_token_ = tokenInfo.refresh_token;
             this.token_expiry_ = parseInt(tokenInfo.expires_in);
+            OneDriveClient.prototype.setTokens(tokenInfo.access_token, tokenInfo.refresh_token);
+            var config = {
+                accessToken: OneDriveClient.prototype.getToken('accessToken'),
+                refreshToken: OneDriveClient.prototype.getToken('refreshToken')
+            };
+            OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
+            chrome.storage.local.set(config, function() {
+                successCallback();
+            });
 
             successCallback();
         }.bind(this)).fail(function(error) {
@@ -723,17 +732,22 @@
         if (status === 404) {
             errorCallback("NOT_FOUND");
         } else if (status === 401) {
-            // Access token has already expired or unauthorized. Unmount.
-            this.onedrive_fs_.doUnmount(function() {
-                errorCallback("INVALID_OPERATION");
-                chrome.notifications.create("", {
-                    type: "basic",
-                    title: "File System for OneDrive",
-                    message: "The access token has expired. File system unmounted.",
-                    iconUrl: "/icons/48.png"
-                }, function(notificationId) {
+            OneDriveClient.prototype.refreshToken(() => {
+                console.log('token refreshed');
+                this.successCallback_();
+            }).fail(function (error) {
+                // Access token has already expired or unauthorized. Unmount.
+                this.onedrive_fs_.doUnmount(function() {
+                    errorCallback("INVALID_OPERATION");
+                    chrome.notifications.create("", {
+                        type: "basic",
+                        title: "File System for OneDrive",
+                        message: "The access token has expired. File system unmounted.",
+                        iconUrl: "/icons/48.png"
+                    }, function(notificationId) {
+                    }.bind(this));
                 }.bind(this));
-            }.bind(this));
+            });
         } else {
             errorCallback("FAILED");
         }

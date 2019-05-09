@@ -91,7 +91,7 @@
                     }
                     successCallback();
                 } else {
-                    errorCallback("ACCESS_TOKEN_NOT_FOUND");
+                    errorCallback("REFRESH_TOKEN_NOT_FOUND");
                 }
             }.bind(this));
         } else {
