@@ -23,6 +23,7 @@
     var OneDriveClient = function(onedriveFS) {
         this.onedrive_fs_ = onedriveFS;
         this.access_token_ = null;
+        this.refresh_token_ = null;
         this.writeRequestMap = {};
         initializeJQueryAjaxBinaryHandler.call(this);
         OneDriveClient.prototype.provideAppInfo(appInfo);
@@ -32,8 +33,9 @@
     // Public functions
 
     OneDriveClient.prototype.authorize = function(successCallback, errorCallback) {
-        this.access_token_ = OneDriveClient.prototype.getTokenFromCookie();
+        this.access_token_ = OneDriveClient.prototype.getTokenFromCookie('access');
         if (this.access_token_) {
+            console.log('already good');
             successCallback();
         }
         else {
@@ -77,10 +79,10 @@
                             "&code=" + this.code_ +
                             "&grant_type=authorization_code",
                         dataType: "text"
-                    }).done(function(jsonData) {
+                    }).done(function(result) {
                         console.log("OK-jsonData");
-                        console.log(jsonData);
-                        var tokenInfo = OneDriveClient.prototype.getTokenInfoFromJSON(jsonData);
+                        console.log(result);
+                        var tokenInfo = JSON.parse(result);
                         console.log("tokenInfo");
                         console.log(tokenInfo);
 
@@ -134,151 +136,85 @@
             console.log(driveData);
             console.log("drive data end:");
             //return driveData;
-            successCallback(result, false);
         }.bind(this)).fail(function(error) {
             handleError.call(this, error, successCallback, errorCallback);
         }.bind(this));
     };
 
-    OneDriveClient.prototype.getToken = function(successCallback, errorCallback) {
-        var appInfo = OneDriveClient.prototype.getAppInfo();
-        var AUTH_URL = appInfo.authServiceUri +
-            "?client_id=" + appInfo.clientId +
-            "&response_type=code" +
-            "&redirect_uri=" + encodeURIComponent(appInfo.redirectUri);
-
-        if (appInfo.scopes) {
-            AUTH_URL += "&scope=" + encodeURIComponent(appInfo.scopes);
-        }
-        if (appInfo.resourceUri) {
-            AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUri);
-        }
-
-        console.log(AUTH_URL);
-        chrome.identity.launchWebAuthFlow({
-            "url": AUTH_URL,
-            "interactive": true
-        }, function(redirectUrl) {
-            if (chrome.runtime.lastError) {
-                errorCallback(chrome.runtime.lastError.message);
-                return;
-            }
-            if (redirectUrl) {
-                var tokenInfo = OneDriveClient.prototype.getTokenInfoFromJSON(redirectUrl);
-                this.access_token_ = tokenInfo.access_token;
-                this.refresh_token_ = tokenInfo.refresh_token;
-                this.token_expiry_ = parseInt(tokenInfo.expires_in);
-                if (this.access_token_)
-                {
-                    OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-                    successCallback();
-                } else {
-                    errorCallback("failed to get an access token ");
-                }
-            } else {
-                errorCallback("Authorization failed");
-            }
-        }.bind(this));
-    };
-
     OneDriveClient.prototype.refreshToken = function(successCallback, errorCallback) {
-        this.refresh_token_ = OneDriveClient.prototype.getRefreshTokenFromCookie();
+        const FILE_SYSTEM_ID = 'onedrivefs';
+        this.refresh_token_ = OneDriveClient.prototype.getTokenFromCookie('refresh');
         var appInfo = OneDriveClient.prototype.getAppInfo();
-
-        var fileSystemId = 'onedrivefs://' + this.uid_;
-        var thisvalue = this.onedrive_fs_.fileSystemId;
-
-        console.log('thisvalue:');
-        console.log(thisvalue);
 
         console.log('appInfo:');
         console.log(appInfo);
 
         console.log('fileSystemId:');
-        console.log(fileSystemId);
+        console.log(FILE_SYSTEM_ID);
 
-        // Get Refresh Token via POST
-        $.ajax({
-            type: "POST",
-            url: appInfo.tokenServiceUri,
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            responseType: "arraybuffer",
-            data: "client_id=" + appInfo.clientId +
-                "&redirect_uri=" + appInfo.redirectUri +
-                "&client_secret=" + appInfo.clientSecret +
-                "&refresh_token=" + this.refresh_token_ +
-                "&grant_type=refresh_token",
-            dataType: "text"
-        }).done(function(jsonData) {
-            console.log("OK-jsonData");
-            console.log(jsonData);
-            var tokenInfo = OneDriveClient.prototype.getTokenInfoFromJSON(jsonData);
-            console.log("tokenInfo");
-            console.log(tokenInfo);
+        OneDriveFS.prototype.getMountedCredential(function(credentials) {
+            if (credentials) {
+                console.log('credentials -');
+                console.log(credentials);
+                // Get Refresh Token via POST
+                $.ajax({
+                    type: "POST",
+                    url: appInfo.tokenServiceUri,
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    responseType: "arraybuffer",
+                    data: "client_id=" + appInfo.clientId +
+                        "&redirect_uri=" + appInfo.redirectUri +
+                        "&client_secret=" + appInfo.clientSecret +
+                        "&refresh_token=" + credentials[FILE_SYSTEM_ID].refreshToken +
+                        "&grant_type=refresh_token",
+                    dataType: "text"
+                }).done(function(jsonData) {
+                    console.log("OK-jsonData");
+                    console.log(jsonData);
+                    var tokenInfo = JSON.parse(jsonData);
+                    console.log("tokenInfo");
+                    console.log(tokenInfo);
 
-            // Process Token - WEAREHERE
+                    // Process Token - WEAREHERE
 
-            this.access_token_ = tokenInfo.access_token;
-            this.refresh_token_ = tokenInfo.refresh_token;
-            this.token_expiry_ = parseInt(tokenInfo.expires_in);
-            OneDriveClient.prototype.setTokens(tokenInfo.access_token, tokenInfo.refresh_token);
-            var config = {
-                accessToken: OneDriveClient.prototype.getToken('accessToken'),
-                refreshToken: OneDriveClient.prototype.getToken('refreshToken')
-            };
-            OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-            chrome.storage.local.set(config, function() {
-                successCallback();
-            });
+                    this.access_token_ = tokenInfo.access_token;
+                    this.refresh_token_ = tokenInfo.refresh_token;
+                    this.token_expiry_ = parseInt(tokenInfo.expires_in);
 
-            successCallback();
-        }.bind(this)).fail(function(error) {
-            this.onedrive_fs_.doUnmount(function() {
-                errorCallback("failed to get a refresh token ");
-                chrome.notifications.create("", {
-                    type: "basic",
-                    title: "FileSystem for OneDrive",
-                    message: "Failed to refresh the access token. File system unmounted.",
-                    iconUrl: "/icons/48.png"
-                }, function(notificationId) {
+                    OneDriveFS.prototype.registerMountedCredential(
+                        this.access_token_, this.refresh_token_, function() {
+                        successCallback();
+                    });
+                    if (this.access_token_)
+                    {
+                        OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
+                        this.driveData = OneDriveClient.prototype.getDriveData();
+                        console.log("cookie has been set");
+                        successCallback();
+                    } else {
+                        console.log("This error is here. 1");
+                        errorCallback("failed to get an access token ");
+                    }
+                    successCallback();
+                }.bind(this)).fail(function(error) {
+                    OneDriveFS.prototype.doUnmount(function() {
+                        errorCallback("failed to get a refresh token ");
+                        chrome.notifications.create("", {
+                            type: "basic",
+                            title: "FileSystem for OneDrive",
+                            message: "Failed to refresh the access token. File system unmounted.",
+                            iconUrl: "/icons/48.png"
+                        }, function(notificationId) {
+                        }.bind(this));
+                    }.bind(this));
                 }.bind(this));
-            }.bind(this));
-        }.bind(this));
-
-        if (this.access_token_)
-        {
-            OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-            successCallback();
-        } else {
-            this.onedrive_fs_.doUnmount(function() {
-                errorCallback("failed to get an access token ");
-                chrome.notifications.create("", {
-                    type: "basic",
-                    title: "FileSystem for OneDrive",
-                    message: "Failed to get a new access token. File system unmounted.",
-                    iconUrl: "/icons/48.png"
-                }, function(notificationId) {
-                }.bind(this));
-            }.bind(this));
-            errorCallback("failed to get an access token ");
-        }
-    };
-
-    OneDriveClient.prototype.getTokenInfoFromJSON = function(jsonData) {
-        if (jsonData) {
-            console.log(jsonData);
-
-            /*    '{' + tokenResponse.replace(/([^=]+)=([^&]+)&?/g, '"$1":"$2",').slice(0,-1) + '}',*/
-            var tokenInfo = JSON.parse(jsonData);
-            console.log("tokenInfo");
-            console.log(tokenInfo);
-            return tokenInfo;
-        }
-        else {
-            console.log("failed to receive tokenInfo");
-        }
+            }
+            else {
+                errorCallback('CREDENTIAL_NOT_FOUND');
+            }
+        });
     };
 
     OneDriveClient.prototype.getCodeFromUrl = function(redirectUrl) {
@@ -298,10 +234,14 @@
         }
     };
 
-    OneDriveClient.prototype.getTokenFromCookie = function() {
+    OneDriveClient.prototype.getTokenFromCookie = function(type) {
         var cookies = document.cookie;
-        var name = "odauth=";
+        var name = type + "Token=";
+        console.log('cookies:::');
+        console.log(cookies);
+        console.log(name);
         var start = cookies.indexOf(name);
+        console.log('I am getting Token type: ' + type);
         if (start >= 0) {
             start += name.length;
             var end = cookies.indexOf(';', start);
@@ -309,31 +249,11 @@
                 end = cookies.length;
             }
             else {
-                var postCookie = cookies.substring(end);
+                //var postCookie = cookies.substring(end);
             }
 
             var value = cookies.substring(start, end);
-            return value;
-        }
-
-        return "";
-    };
-
-    OneDriveClient.prototype.getRefreshTokenFromCookie = function() {
-        var cookies = document.cookie;
-        var name = "refreshToken=";
-        var start = cookies.indexOf(name);
-        if (start >= 0) {
-            start += name.length;
-            var end = cookies.indexOf(';', start);
-            if (end < 0) {
-                end = cookies.length;
-            }
-            else {
-                var postCookie = cookies.substring(end);
-            }
-
-            var value = cookies.substring(start, end);
+            console.log(type + 'Token=' + value);
             return value;
         }
 
@@ -343,7 +263,7 @@
     OneDriveClient.prototype.setCookie = function() {
         var expiration = new Date();
         expiration.setTime(expiration.getTime() + this.token_expiry_ * 1000);
-        var cookie = "odauth=" + this.access_token_ +"; refreshToken=" + this.refresh_token_ +"; path=/; expires=" + expiration.toUTCString();
+        var cookie = "accessToken=" + this.access_token_ +"; refreshToken=" + this.refresh_token_ +"; path=/; expires=" + expiration.toUTCString();
 
         if (document.location.protocol.toLowerCase() === "https") {
             cookie = cookie + ";secure";
@@ -472,6 +392,8 @@
             console.log(result);
             var contents = result.value;
             createEntryMetadatas.call(this, contents, 0, [], successCallback, errorCallback);
+        }.bind(this)).fail(function(error) {
+            handleError.call(this, error, successCallback, errorCallback);
         }.bind(this));
     };
 
@@ -732,24 +654,18 @@
         if (status === 404) {
             errorCallback("NOT_FOUND");
         } else if (status === 401) {
-            OneDriveClient.prototype.refreshToken(() => {
+            console.log('token expired - trying to refresh');
+            OneDriveClient.prototype.refreshToken(function() {
                 console.log('token refreshed');
-                this.successCallback_();
-            }).fail(function (error) {
-                // Access token has already expired or unauthorized. Unmount.
-                this.onedrive_fs_.doUnmount(function() {
-                    errorCallback("INVALID_OPERATION");
-                    chrome.notifications.create("", {
-                        type: "basic",
-                        title: "File System for OneDrive",
-                        message: "The access token has expired. File system unmounted.",
-                        iconUrl: "/icons/48.png"
-                    }, function(notificationId) {
-                    }.bind(this));
-                }.bind(this));
+                //successCallback();
+            }, function () {
+                console.log('token expired - refresh failed');
+                errorCallback('INVALID_OPERATION');
             });
         } else {
-            errorCallback("FAILED");
+            console.log('misc error -');
+            console.log(error);
+            errorCallback('FAILED');
         }
     };
 

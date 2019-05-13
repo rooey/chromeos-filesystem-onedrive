@@ -32,21 +32,6 @@
             } else {
                 this.onedrive_client_ = new OneDriveClient(this);
                 this.onedrive_client_.authorize(function() {
-                    /*
-                    console.log("getting drive data");
-
-                    this.onedrive_client_.getDriveData();
-                    var driveData = this.onedrive_client_.getDriveData();
-
-                    console.log("driveData-12");
-                    console.log(driveData);
-                    console.log("driveData-13");
-
-                    console.log("driveData-14");
-                    console.log(this.driveData);
-                    console.log("driveData-15");
-                    */
-
                     chrome.fileSystemProvider.mount({
                         fileSystemId: FILE_SYSTEM_ID,
                         displayName: FILE_SYSTEM_NAME,
@@ -57,11 +42,8 @@
                             this.onedrive_client_ = null;
                             errorCallback(lastError);
                         } else {
-                            var config = {
-                                accessToken: this.onedrive_client_.getToken('accessToken'),
-                                refreshToken: this.onedrive_client_.getToken('refreshToken')
-                            };
-                            chrome.storage.local.set(config, function() {
+                            this.registerMountedCredential(
+                                this.onedrive_client_.getToken('accessToken'), this.onedrive_client_.getToken('refreshToken'), function() {
                                 successCallback();
                             });
                         }
@@ -75,28 +57,61 @@
     };
 
     OneDriveFS.prototype.resume = function(successCallback, errorCallback) {
+        console.log('resume - start');
         if (!this.onedrive_client_) {
-            chrome.storage.local.get("accessToken", function(items) {
-                var accessToken = items.accessToken;
-            }.bind(this));
-            chrome.storage.local.get("refreshToken", function(items) {
-                var refreshToken = items.refreshToken;
-                if (refreshToken) {
-                    if (accessToken) {
-                        this.onedrive_client_ = new OneDriveClient(this);
-                        this.onedrive_client_.setTokens(accessToken, refreshToken);
-                        successCallback();
-                    } else {
-                        errorCallback("ACCESS_TOKEN_NOT_FOUND");
-                    }
+            this.getMountedCredential(function (credentials) {
+                if (credentials) {
+                    console.log('credentials object-');
+                    console.log(credentials);
+                    console.log('accessToken: ' + credentials[FILE_SYSTEM_ID].accessToken);
+                    console.log('refreshToken: ' + credentials[FILE_SYSTEM_ID].refreshToken);
+                    const onedrive_client_= new OneDriveClient(this);
+                    onedrive_client_.setTokens(credentials[FILE_SYSTEM_ID].accessToken, credentials[FILE_SYSTEM_ID].refreshToken);
+                    console.log('accessToken: ' + credentials[FILE_SYSTEM_ID].accessToken);
+                    console.log('refreshToken: ' + credentials[FILE_SYSTEM_ID].refreshToken);
+                    console.log('resume - end');
                     successCallback();
                 } else {
-                    errorCallback("REFRESH_TOKEN_NOT_FOUND");
+                    errorCallback('CREDENTIAL_NOT_FOUND');
                 }
             }.bind(this));
         } else {
+            console.log('resume-clear');
             successCallback();
         }
+    };
+
+    OneDriveFS.prototype.registerMountedCredential = function(accessToken, refreshToken, callback) {
+        console.log("registerMountedCredential");
+        chrome.storage.local.get('credentials', function (items) {
+            const credentials = items.credentials || {};
+            credentials[FILE_SYSTEM_ID] = {
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                uid: FILE_SYSTEM_ID
+            };
+            chrome.storage.local.set({
+                credentials: credentials
+            }, callback(credentials));
+        });
+    };
+
+    OneDriveFS.prototype.getMountedCredential = function(callback) {
+        chrome.storage.local.get('credentials', function (items) {
+            const credentials = items.credentials || {};
+            const credential = credentials[FILE_SYSTEM_ID];
+            callback(credential);
+        });
+    };
+
+    OneDriveFS.prototype.unregisterMountedCredential = function(callback) {
+        chrome.storage.local.get('credentials', function (items) {
+            const credentials = items.credentials || {};
+            delete credentials[FILE_SYSTEM_ID];
+            chrome.storage.local.set({
+                credentials: credentials
+            }, callback(credentials));
+        });
     };
 
     OneDriveFS.prototype.onUnmountRequested = function(options, successCallback, errorCallback) {
@@ -115,6 +130,10 @@
     OneDriveFS.prototype.onGetMetadataRequested = function(options, successCallback, errorCallback) {
         console.log("onGetMetadataRequested: thumbnail=" + options.thumbnail);
         console.log(options);
+        console.log('this -');
+        console.log(this);
+        console.log('this.onedrive_client_ -');
+        console.log(this.onedrive_client_);
         var metadataCache = getMetadataCache.call(this);
         var cache = metadataCache.get(options.entryPath);
         if (cache.directoryExists && cache.fileExists) {
@@ -225,28 +244,50 @@
     };
 
     OneDriveFS.prototype.doUnmount = function(successCallback) {
-        var unmount = function(callback) {
-            chrome.fileSystemProvider.unmount({
-                fileSystemId: FILE_SYSTEM_ID
-            }, function() {
-                chrome.storage.local.remove("accessToken", function() {
-                    callback();
-                }.bind(this));
-                chrome.storage.local.remove("refreshToken", function() {
-                    callback();
-                }.bind(this));
-            }.bind(this));
-        }.bind(this);
-        this.onedrive_client_.unauthorize(function() {
-            unmount(successCallback);
-        }.bind(this), function(reason) {
-            console.log(reason);
-            unmount(successCallback);
-        }.bind(this));
+        this.unregisterMountedCredential(function() {
+                successCallback();
+                chrome.fileSystemProvider.unmount({
+                    fileSystemId: FILE_SYSTEM_ID
+                }, function() {
+                    // N/A
+                    console.log('unmounted');
+                });
+            }
+        );
     };
 
     // Private functions
+    var createEventHandler = function(callback) {
+        return function(options, successCallback, errorCallback) {
+            if (!this.onedrive_client_) {
+                this.resume(function() {
+                    callback(options, successCallback, errorCallback);
+                }.bind(this), function (reason) {
+                    console.log('resume failed: ' + reason);
+                    chrome.notifications.create('', {
+                        type: 'basic',
+                        title: 'File System for OneDrive',
+                        message: 'Resuming failed. Unmount.',
+                        iconUrl: '/images/48.png'
+                    }, function (_notificationId) {
+                    });
+                    this.getMountedCredential(function (credentials) {
+                        if (credentials) {
+                            this.doUnmount(successCallback);
+                            errorCallback('FAILED');
+                        } else {
+                            console.log('Credentials for [' + FILE_SYSTEM_ID + '] not found.');
+                            errorCallback('FAILED');
+                        }
+                    }.bind(this));
+                }.bind(this));
+            } else {
+                callback(options, successCallback, errorCallback);
+            }
+        }.bind(this);
+    };
 
+    /*
     var createEventHandler = function(callback) {
         return function(options, successCallback, errorCallback) {
             if (!this.onedrive_client_) {
@@ -261,6 +302,7 @@
             }
         }.bind(this);
     };
+    */
 
     var assignEventHandlers = function() {
         console.log("Start: assignEventHandlers");

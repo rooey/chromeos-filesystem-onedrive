@@ -1,6 +1,6 @@
 {
-  "name": "Dropbox File System",
-  "version": "1.0.0",
+  "name": "onedrive-filesystem",
+  "version": "2.0.3",
   "dependencies": {
     "jquery": "~1.11.2",
     "bootstrap": "^3.3.7",
