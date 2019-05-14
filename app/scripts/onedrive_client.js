@@ -26,7 +26,6 @@
         this.refresh_token_ = null;
         this.writeRequestMap = {};
         initializeJQueryAjaxBinaryHandler.call(this);
-        OneDriveClient.prototype.provideAppInfo(appInfo);
     };
 
 
@@ -35,7 +34,7 @@
     OneDriveClient.prototype.authorize = function(successCallback, errorCallback) {
         this.access_token_ = OneDriveClient.prototype.getTokenFromCookie('access');
         if (this.access_token_) {
-            console.log('already good');
+            //console.log('already good');
             successCallback();
         }
         else {
@@ -52,7 +51,7 @@
                 AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUri);
             }
 
-            console.log(AUTH_URL);
+            //console.log(AUTH_URL);
             chrome.identity.launchWebAuthFlow({
                 "url": AUTH_URL,
                 "interactive": true
@@ -80,11 +79,11 @@
                             "&grant_type=authorization_code",
                         dataType: "text"
                     }).done(function(result) {
-                        console.log("OK-jsonData");
-                        console.log(result);
+                        //console.log("OK-jsonData");
+                        //console.log(result);
                         var tokenInfo = JSON.parse(result);
-                        console.log("tokenInfo");
-                        console.log(tokenInfo);
+                        //console.log("tokenInfo");
+                        //console.log(tokenInfo);
 
                         // Process Token - WEAREHERE
 
@@ -98,7 +97,7 @@
                             this.driveData = OneDriveClient.prototype.getDriveData();
                             successCallback();
                         } else {
-                            console.log("This error is here. 1");
+                            //console.log("This error is here. 1");
                             errorCallback("failed to get an access token ");
                         }
                     }.bind(this)).fail(function(error) {
@@ -113,7 +112,7 @@
 
     OneDriveClient.prototype.getDriveData = function(successCallback, errorCallback) {
         var url = "https://graph.microsoft.com/v1.0/me/drive";
-        console.log("url set");
+        //console.log("url set");
         $.ajax({
             type: "GET",
             url: url,
@@ -122,9 +121,9 @@
             },
             dataType: "json"
         }).done(function(result) {
-            console.log("preres");
-            console.log(result);
-            console.log("postres");
+            //console.log("preres");
+            //console.log(result);
+            //console.log("postres");
             var driveData = {
                 id: result.id,
                 name: normalizeName.call(this, result.name),
@@ -132,9 +131,9 @@
                 quota: result.quota
             };
         
-            console.log("drive data:");
-            console.log(driveData);
-            console.log("drive data end:");
+            //console.log("drive data:");
+            //console.log(driveData);
+            //console.log("drive data end:");
             //return driveData;
         }.bind(this)).fail(function(error) {
             handleError.call(this, error, successCallback, errorCallback);
@@ -146,16 +145,17 @@
         this.refresh_token_ = OneDriveClient.prototype.getTokenFromCookie('refresh');
         var appInfo = OneDriveClient.prototype.getAppInfo();
 
-        console.log('appInfo:');
-        console.log(appInfo);
+        //console.log('appInfo:');
+        //console.log(appInfo);
 
-        console.log('fileSystemId:');
-        console.log(FILE_SYSTEM_ID);
+        //console.log('fileSystemId:');
+        //console.log(FILE_SYSTEM_ID);
 
         OneDriveFS.prototype.getMountedCredential(function(credentials) {
             if (credentials) {
-                console.log('credentials -');
-                console.log(credentials);
+                //console.log('credentials -');
+                //console.log(credentials);
+                OneDriveClient.prototype.setTokens(credentials.accessToken, credentials.refreshToken);
                 // Get Refresh Token via POST
                 $.ajax({
                     type: "POST",
@@ -167,15 +167,15 @@
                     data: "client_id=" + appInfo.clientId +
                         "&redirect_uri=" + appInfo.redirectUri +
                         "&client_secret=" + appInfo.clientSecret +
-                        "&refresh_token=" + credentials[FILE_SYSTEM_ID].refreshToken +
+                        "&refresh_token=" + credentials.refreshToken +
                         "&grant_type=refresh_token",
                     dataType: "text"
                 }).done(function(jsonData) {
-                    console.log("OK-jsonData");
-                    console.log(jsonData);
+                    //console.log("OK-jsonData");
+                    //console.log(jsonData);
                     var tokenInfo = JSON.parse(jsonData);
-                    console.log("tokenInfo");
-                    console.log(tokenInfo);
+                    //console.log("tokenInfo");
+                    //console.log(tokenInfo);
 
                     // Process Token - WEAREHERE
 
@@ -191,10 +191,10 @@
                     {
                         OneDriveClient.prototype.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
                         this.driveData = OneDriveClient.prototype.getDriveData();
-                        console.log("cookie has been set");
+                        //console.log("cookie has been set");
                         successCallback();
                     } else {
-                        console.log("This error is here. 1");
+                        //console.log("This error is here. 1");
                         errorCallback("failed to get an access token ");
                     }
                     successCallback();
@@ -220,28 +220,28 @@
     OneDriveClient.prototype.getCodeFromUrl = function(redirectUrl) {
         if (redirectUrl) {
             var codeResponse = redirectUrl.substring(redirectUrl.indexOf("?") + 1);
-            console.log(codeResponse);
+            //console.log(codeResponse);
 
             var codeInfo = JSON.parse(
                 '{' + codeResponse.replace(/([^=]+)=([^&]+)&?/g, '"$1":"$2",').slice(0,-1) + '}',
                 function(key, value) { return key === "" ? value : decodeURIComponent(value); });
-            console.log("codeInfo");
-            console.log(codeInfo);
+            //console.log("codeInfo");
+            //console.log(codeInfo);
             return codeInfo;
         }
         else {
-            console.log("failed to receive codeInfo");
+            //console.log("failed to receive codeInfo");
         }
     };
 
     OneDriveClient.prototype.getTokenFromCookie = function(type) {
         var cookies = document.cookie;
         var name = type + "Token=";
-        console.log('cookies:::');
-        console.log(cookies);
-        console.log(name);
+        //console.log('cookies:::');
+        //console.log(cookies);
+        //console.log(name);
         var start = cookies.indexOf(name);
-        console.log('I am getting Token type: ' + type);
+        //console.log('I am getting Token type: ' + type);
         if (start >= 0) {
             start += name.length;
             var end = cookies.indexOf(';', start);
@@ -253,17 +253,17 @@
             }
 
             var value = cookies.substring(start, end);
-            console.log(type + 'Token=' + value);
+            //console.log(type + 'Token=' + value);
             return value;
         }
 
         return "";
     };
 
-    OneDriveClient.prototype.setCookie = function() {
+    OneDriveClient.prototype.setCookie = function(accessToken, refreshToken, tokenExpiry) {
         var expiration = new Date();
-        expiration.setTime(expiration.getTime() + this.token_expiry_ * 1000);
-        var cookie = "accessToken=" + this.access_token_ +"; refreshToken=" + this.refresh_token_ +"; path=/; expires=" + expiration.toUTCString();
+        expiration.setTime(expiration.getTime() + tokenExpiry * 1000);
+        var cookie = "accessToken=" + accessToken +"; refreshToken=" + refreshToken +"; path=/; expires=" + expiration.toUTCString();
 
         if (document.location.protocol.toLowerCase() === "https") {
             cookie = cookie + ";secure";
@@ -274,49 +274,12 @@
 
     OneDriveClient.prototype.getAppInfo = function() {
         if (storedAppInfo) {
+            //console.log('returning storedAppInfo');
             return storedAppInfo;
         }
-
-        var scriptTag = document.getElementById("odauth");
-        if (!scriptTag) {
-            console.log("the script tag for odauth.js should have its id set to 'odauth'");
-        }
-
-        var clientId = scriptTag.getAttribute("clientId");
-        if (!clientId) {
-            console.log("the odauth script tag needs a clientId attribute set to your application id");
-        }
-
-        var scopes = scriptTag.getAttribute("scopes");
-        // scopes aren't always required, so we don't warn here.
-
-        var redirectUri = scriptTag.getAttribute("redirectUri");
-        if (!redirectUri) {
-            console.log("the odauth script tag needs a redirectUri attribute set to your redirect landing url");
-        }
-
-        var resourceUri = scriptTag.getAttribute("resourceUri");
-
-        var authServiceUri = scriptTag.getAttribute("authServiceUri");
-        if (!authServiceUri) {
-            console.log("the odauth script tag needs an authServiceUri attribtue set to the oauth authentication service url");
-        }
-
-        var appInfo = {
-            "clientId": clientId,
-            "scopes": scopes,
-            "redirectUri": redirectUri,
-            "resourceUri": resourceUri,
-            "authServiceUri": authServiceUri
-        };
-
+        //console.log('setting storedAppInfo to appInfo');            
         storedAppInfo = appInfo;
-
-        return appInfo;
-    };
-
-    OneDriveClient.prototype.provideAppInfo = function(obj) {
-        storedAppInfo = obj;
+        return storedAppInfo;
     };
 
     OneDriveClient.prototype.getToken = function(type) {
@@ -348,6 +311,8 @@
 
     OneDriveClient.prototype.getMetadata = function(path, successCallback, errorCallback) {
         var url = "https://graph.microsoft.com/v1.0/me/drive/root";
+        //console.log('using token:');
+        //console.log(this.access_token_);
 
         if (path !== "/") {
             url += ":" + path;
@@ -360,7 +325,7 @@
             },
             dataType: "json"
         }).done(function(result) {
-            console.log(result);
+            //console.log(result);
             var entryMetadata = {
                 isDirectory: isDirectoryEntry.call(this, result),
                 name: normalizeName.call(this, result.name),
@@ -389,7 +354,7 @@
             },
             dataType: "json"
         }).done(function(result) {
-            console.log(result);
+            //console.log(result);
             var contents = result.value;
             createEntryMetadatas.call(this, contents, 0, [], successCallback, errorCallback);
         }.bind(this)).fail(function(error) {
@@ -409,8 +374,8 @@
         if (writeRequest && writeRequest.mode === "WRITE") {
             var localFileName = writeRequest.localFileName;
             var errorHandler = function(error) {
-                console.log("writeFile failed");
-                console.log(error);
+                //console.log("writeFile failed");
+                //console.log(error);
                 errorCallback("FAILED");
             }.bind(this);
             window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
@@ -449,7 +414,7 @@
             dataType: "binary",
             responseType: "arraybuffer"
         }).done(function(result) {
-            console.log(result);
+            //console.log(result);
             successCallback(result, false);
         }.bind(this)).fail(function(error) {
             handleError.call(this, error, successCallback, errorCallback);
@@ -586,8 +551,8 @@
         var localFileName = String(openRequestId);
         writeRequest.localFileName = localFileName;
         var errorHandler = function(error) {
-            console.log("writeFile failed");
-            console.log(error);
+            //console.log("writeFile failed");
+            //console.log(error);
             errorCallback("FAILED");
         }.bind(this);
         window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
@@ -649,22 +614,23 @@
     // Private functions
 
     var handleError = function(error, successCallback, errorCallback) {
-        console.log(error);
+        //console.log('error object -');
+        //console.log(error);
         var status = Number(error.status);
         if (status === 404) {
             errorCallback("NOT_FOUND");
         } else if (status === 401) {
-            console.log('token expired - trying to refresh');
-            OneDriveClient.prototype.refreshToken(function() {
-                console.log('token refreshed');
+            //console.log('token expired - trying to refresh');
+            OneDriveClient.prototype.refreshToken(function(successCallback, errorCallback) {
+                //console.log('token refreshed');
                 //successCallback();
             }, function () {
-                console.log('token expired - refresh failed');
+                //console.log('token expired - refresh failed');
                 errorCallback('INVALID_OPERATION');
             });
         } else {
-            console.log('misc error -');
-            console.log(error);
+            //console.log('misc error -');
+            //console.log(error);
             errorCallback('FAILED');
         }
     };
@@ -681,7 +647,7 @@
             processData: false,
             data: options.data
         }).done(function(result) {
-            console.log(result);
+            //console.log(result);
             successCallback();
         }.bind(this)).fail(function(error) {
             handleError.call(this, error, successCallback, errorCallback);
@@ -773,7 +739,7 @@
                     entryMetadata.mimeType = content.package.type;
                 }
             }
-            console.log(entryMetadata);
+            //console.log(entryMetadata);
             entryMetadatas.push(entryMetadata);
             createEntryMetadatas.call(this, contents, ++index, entryMetadatas, successCallback, errorCallback);
         }

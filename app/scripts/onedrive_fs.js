@@ -63,12 +63,12 @@
                 if (credentials) {
                     console.log('credentials object-');
                     console.log(credentials);
-                    console.log('accessToken: ' + credentials[FILE_SYSTEM_ID].accessToken);
-                    console.log('refreshToken: ' + credentials[FILE_SYSTEM_ID].refreshToken);
-                    const onedrive_client_= new OneDriveClient(this);
-                    onedrive_client_.setTokens(credentials[FILE_SYSTEM_ID].accessToken, credentials[FILE_SYSTEM_ID].refreshToken);
-                    console.log('accessToken: ' + credentials[FILE_SYSTEM_ID].accessToken);
-                    console.log('refreshToken: ' + credentials[FILE_SYSTEM_ID].refreshToken);
+                    console.log('accessToken: ' + credentials.accessToken);
+                    console.log('refreshToken: ' + credentials.refreshToken);
+                    this.onedrive_client_= new OneDriveClient(this);
+                    this.onedrive_client_.setTokens(credentials.accessToken, credentials.refreshToken);
+                    console.log('accessToken: ' + credentials.accessToken);
+                    console.log('refreshToken: ' + credentials.refreshToken);
                     console.log('resume - end');
                     successCallback();
                 } else {
@@ -139,6 +139,7 @@
         if (cache.directoryExists && cache.fileExists) {
             successCallback(cache.metadata);
         } else {
+            console.log('GET METADATA ---');
             this.onedrive_client_.getMetadata(
                 options.entryPath, function(entryMetadata) {
                     successCallback(entryMetadata);
