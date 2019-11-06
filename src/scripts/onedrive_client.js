@@ -446,21 +446,35 @@ class OneDriveClient {
 
     readFile(filePath, offset, length, successCallback, errorCallback) {
         const data = JSON.stringify({path: filePath});
+        if (offset > 0) {
+            console.log("readFile:: Offset reads are not currently supported");
+            errorCallback();
+            return;
+        }
         const range = 'bytes=' + offset + '-' + (offset + length - 1);
         new HttpFetcher(this, 'readFile', {
             type: 'GET',
-            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + filePath + ":/content",
+            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + filePath + "?select=id,@microsoft.graph.downloadUrl",
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_,
-                'Range': range
-            },
-            dataType: 'binary',
-            responseType: 'arraybuffer'
+            }
         }, {
             data: data,
             range: range
         }, result => {
-            successCallback(result, false);
+            console.log("starting download")
+            console.log(result);
+            new HttpFetcher(this, 'readFile', {
+                type: 'GET',
+                url: result["@microsoft.graph.downloadUrl"],
+                dataType: 'binary',
+                responseType: 'arraybuffer'
+            }, {
+                data: data,
+                range: range
+            }, result2 => {
+                successCallback(result2, false);
+            }, errorCallback).fetch();
         }, errorCallback).fetch();
     }
 
