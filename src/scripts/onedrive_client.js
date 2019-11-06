@@ -923,20 +923,17 @@ class OneDriveClient {
         var data = JSON.stringify({
             path: path
         });
+        var splitPath = path.split("/");
         console.log('operation is below')
         switch(operation){
             case 'create_folder':
                 console.log('making a directory');
                 data = JSON.stringify({
-                    path: path,
+                    name: splitPath.pop(),
                     folder: {}
                 });
-                if (path !== "") {
-                    //url += ":" + path + ":";
-                    url += ":" + path;
-                }
-                //url += "/children";
-                operation = 'PUT';
+                url += ":/" + splitPath.join("/") + ":/children";
+                operation = 'POST';
                 break;
             case 'delete':
                 console.log('deleting a file');
