@@ -518,11 +518,11 @@ class OneDriveClient {
 
     writeFile(filePath, data, offset, openRequestId, successCallback, errorCallback) {
         const writeRequest = this.writeRequestMap[openRequestId];
-        if (writeRequest.uploadId) {
+        if (writeRequest.uploadUrl) {
             this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
         } else {
-            this.startUploadSession(sessionId => {
-                writeRequest.uploadId = sessionId;
+            this.startUploadSession(filePath, sessionUrl => {
+                writeRequest.uploadUrl = sessionUrl;
                 this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
             }, errorCallback);
         }
@@ -543,7 +543,7 @@ class OneDriveClient {
             dataType: 'binary',
             responseType: 'arraybuffer'
         }, data, data => {
-            this.startUploadSession(sessionId => {
+            this.startUploadSession(filePath, sessionUrl => {
                 if (length < data.byteLength) {
                     // Truncate
                     const req = {
@@ -551,7 +551,7 @@ class OneDriveClient {
                         data: data.slice(0, length),
                         offset: 0,
                         sentBytes: 0,
-                        uploadId: sessionId,
+                        uploadUrl: sessionUrl,
                         hasMore: true,
                         needCommit: true,
                         openRequestId: null
@@ -569,7 +569,7 @@ class OneDriveClient {
                             data: reader.result,
                             offset: 0,
                             sentBytes: 0,
-                            uploadId: sessionId,
+                            uploadUrl: sessionUrl,
                             hasMore: true,
                             needCommit: true,
                             openRequestId: null
@@ -597,7 +597,7 @@ class OneDriveClient {
             data: data,
             offset: offset,
             sentBytes: 0,
-            uploadId: writeRequest.uploadId,
+            uploadUrl: writeRequest.uploadUrl,
             hasMore: true,
             needCommit: false,
             openRequestId: openRequestId
@@ -614,15 +614,15 @@ class OneDriveClient {
             extPattern.test(metadata.name);
     }
         
-    startUploadSession(successCallback, errorCallback) {
-        const data = this.jsonStringify({
+    startUploadSession(filePath, successCallback, errorCallback) {
+        const reqData = this.jsonStringify({
             close: false
         });
         console.log('STARTINGUPLOADSESSION');
         console.log(this);
         new HttpFetcher(this, 'startUploadSession', {
             type: 'POST',
-            url: "https://graph.microsoft.com/v1.0/me/drive/items/" + this + "/createUploadSession",
+            url: "https://graph.microsoft.com/v1.0/me/drive/root:/" + filePath + ":/createUploadSession",
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_,
                 'Content-Type': 'application/json'
@@ -631,12 +631,10 @@ class OneDriveClient {
                 "@odata.type": "microsoft.graph.driveItemUploadableProperties",
                 "@microsoft.graph.conflictBehavior": "replace"
             },
-        }, data, result => {
+        }, reqData, result => {
             console.log('creating upload session');
             console.log(result);
-            options.uploadUrl = result.uploadUrl;
-            this.sendContents.call(this, options, successCallback, errorCallback);
-            successCallback(options);
+            successCallback(result.uploadUrl);
         }, errorCallback).fetch();
     }
 
