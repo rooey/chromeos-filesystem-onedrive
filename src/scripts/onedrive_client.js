@@ -446,21 +446,35 @@ class OneDriveClient {
 
     readFile(filePath, offset, length, successCallback, errorCallback) {
         const data = JSON.stringify({path: filePath});
+        if (offset > 0) {
+            console.log("readFile:: Offset reads are not currently supported");
+            errorCallback();
+            return;
+        }
         const range = 'bytes=' + offset + '-' + (offset + length - 1);
         new HttpFetcher(this, 'readFile', {
             type: 'GET',
-            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + filePath + ":/content",
+            url: "https://graph.microsoft.com/v1.0/me/drive/root:" + filePath + "?select=id,@microsoft.graph.downloadUrl",
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_,
-                'Range': range
-            },
-            dataType: 'binary',
-            responseType: 'arraybuffer'
+            }
         }, {
             data: data,
             range: range
         }, result => {
-            successCallback(result, false);
+            console.log("starting download")
+            console.log(result);
+            new HttpFetcher(this, 'readFile', {
+                type: 'GET',
+                url: result["@microsoft.graph.downloadUrl"],
+                dataType: 'binary',
+                responseType: 'arraybuffer'
+            }, {
+                data: data,
+                range: range
+            }, result2 => {
+                successCallback(result2, false);
+            }, errorCallback).fetch();
         }, errorCallback).fetch();
     }
 
@@ -504,11 +518,11 @@ class OneDriveClient {
 
     writeFile(filePath, data, offset, openRequestId, successCallback, errorCallback) {
         const writeRequest = this.writeRequestMap[openRequestId];
-        if (writeRequest.uploadId) {
+        if (writeRequest.uploadUrl) {
             this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
         } else {
-            this.startUploadSession(sessionId => {
-                writeRequest.uploadId = sessionId;
+            this.startUploadSession(filePath, sessionUrl => {
+                writeRequest.uploadUrl = sessionUrl;
                 this.doWriteFile(filePath, data, offset, openRequestId, writeRequest, successCallback, errorCallback);
             }, errorCallback);
         }
@@ -529,7 +543,7 @@ class OneDriveClient {
             dataType: 'binary',
             responseType: 'arraybuffer'
         }, data, data => {
-            this.startUploadSession(sessionId => {
+            this.startUploadSession(filePath, sessionUrl => {
                 if (length < data.byteLength) {
                     // Truncate
                     const req = {
@@ -537,7 +551,7 @@ class OneDriveClient {
                         data: data.slice(0, length),
                         offset: 0,
                         sentBytes: 0,
-                        uploadId: sessionId,
+                        uploadUrl: sessionUrl,
                         hasMore: true,
                         needCommit: true,
                         openRequestId: null
@@ -555,7 +569,7 @@ class OneDriveClient {
                             data: reader.result,
                             offset: 0,
                             sentBytes: 0,
-                            uploadId: sessionId,
+                            uploadUrl: sessionUrl,
                             hasMore: true,
                             needCommit: true,
                             openRequestId: null
@@ -583,7 +597,7 @@ class OneDriveClient {
             data: data,
             offset: offset,
             sentBytes: 0,
-            uploadId: writeRequest.uploadId,
+            uploadUrl: writeRequest.uploadUrl,
             hasMore: true,
             needCommit: false,
             openRequestId: openRequestId
@@ -600,15 +614,15 @@ class OneDriveClient {
             extPattern.test(metadata.name);
     }
         
-    startUploadSession(successCallback, errorCallback) {
-        const data = this.jsonStringify({
+    startUploadSession(filePath, successCallback, errorCallback) {
+        const reqData = this.jsonStringify({
             close: false
         });
         console.log('STARTINGUPLOADSESSION');
         console.log(this);
         new HttpFetcher(this, 'startUploadSession', {
             type: 'POST',
-            url: "https://graph.microsoft.com/v1.0/me/drive/items/" + this + "/createUploadSession",
+            url: "https://graph.microsoft.com/v1.0/me/drive/root:/" + filePath + ":/createUploadSession",
             headers: {
                 'Authorization': 'Bearer ' + this.access_token_,
                 'Content-Type': 'application/json'
@@ -617,12 +631,10 @@ class OneDriveClient {
                 "@odata.type": "microsoft.graph.driveItemUploadableProperties",
                 "@microsoft.graph.conflictBehavior": "replace"
             },
-        }, data, result => {
+        }, reqData, result => {
             console.log('creating upload session');
             console.log(result);
-            options.uploadUrl = result.uploadUrl;
-            this.sendContents.call(this, options, successCallback, errorCallback);
-            successCallback(options);
+            successCallback(result.uploadUrl);
         }, errorCallback).fetch();
     }
 
@@ -911,20 +923,17 @@ class OneDriveClient {
         var data = JSON.stringify({
             path: path
         });
+        var splitPath = path.split("/");
         console.log('operation is below')
         switch(operation){
             case 'create_folder':
                 console.log('making a directory');
                 data = JSON.stringify({
-                    path: path,
+                    name: splitPath.pop(),
                     folder: {}
                 });
-                if (path !== "") {
-                    //url += ":" + path + ":";
-                    url += ":" + path;
-                }
-                //url += "/children";
-                operation = 'PUT';
+                url += ":/" + splitPath.join("/") + ":/children";
+                operation = 'POST';
                 break;
             case 'delete':
                 console.log('deleting a file');
