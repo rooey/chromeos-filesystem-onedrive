@@ -19,6 +19,16 @@ $ npm install
 $ gulp
 ```
 
+## How to access the pre-built development version
+
+```
+BE AWARE THAT THIS ALPHA CODE IS NOT SUITABLE FOR PRODUCTION USE AND COULD BE HARMFUL TO YOUR FILES
+Join the Google Group:
+* https://groups.google.com/forum/#!forum/chromeos-onedrive-testers
+Download the test client:
+* https://chrome.google.com/webstore/detail/file-system-for-onedrive/ceklkpjapeaemmdchpmdkoegdnfmagba
+```
+
 ## Dependencies
 
 * [Bootstrap] (http://getbootstrap.com)
