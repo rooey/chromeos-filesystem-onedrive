@@ -20,8 +20,16 @@
     "description": "Microsoft Account management."
   },
   "configManageLinkText": {
-    "message": "Manage Linked Applications",
+    "message": "Manage Linked Applications  ",
     "description": "Link to Microsoft Account permissions page."
+  },
+  "bugLinkTitle": {
+    "message": "Get Support",
+    "description": "Link to Issues on GitHub."
+  },
+  "bugLinkText": {
+    "message": "Log a bug with OneDrive for ChromeOS",
+    "description": "Link to Issues on GitHub."
   },
   "configSyncFilesText": {
     "message": "Synchronize files/directories automatically",

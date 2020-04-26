@@ -41,9 +41,11 @@ class HttpFetcher {
             this.successCallback_(new ArrayBuffer(), false);
         } else if (status === 401) {
             console.error(error);
-            // Access token has already expired or unauthorized. Unmount.
-            this.onedrive_client_.unmountByAccessTokenExpired();
-            this.errorCallback_('INVALID_OPERATION');
+            // Access token has already expired or unauthorized. Attempt to refresh.
+            this.onedrive_client_.refreshToken(() => {
+                console.log('token refreshed');
+                this.successCallback_();
+            }, this.errorCallback_('INVALID_OPERATION'));
         } else if (status === 429) {
             const retryAfter = error.getResponseHeader('Retry-After');
             if (retryAfter) {

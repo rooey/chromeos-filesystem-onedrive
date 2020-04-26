@@ -2,15 +2,13 @@
 
 # File System for OneDrive
 
-Maintained by Rooey to add Graph API support and OneDrive personal & business & provide bug fixes
+Maintained by Rooey by adding Graph API support and OneDrive personal & business support as well as providing bug fixes.
 
-File System for OneDrive provides you an ability to access to your OneDrive storage directly from the Files app.
+This application gives you the ability to access your OneDrive files directly from the Files app.
 
-<a target="_blank" href="https://chrome.google.com/webstore/detail/file-system-for-onedrive/jbfdfcehgafdbfpniaimfbfomafoadgo">
-  Go to File System for OneDrive page on Chrome WebStore
-</a>
+[Install this application in chrome web store](https://chrome.google.com/webstore/detail/file-system-for-onedrive/jbfdfcehgafdbfpniaimfbfomafoadgo)
 
-<img src="https://raw.githubusercontent.com/yoichiro/chromeos-filesystem-onedrive/master/docs/screenshot_2.png">
+![screenshot](https://raw.githubusercontent.com/rooey/chromeos-filesystem-onedrive/master/docs/screenshot_2.png)
 
 ## How to build
 
@@ -21,13 +19,22 @@ $ npm install
 $ gulp
 ```
 
-## Dependent libraries
+## How to access the pre-built development version
+
+```
+BEWARE: THIS ALPHA CODE IS NOT SUITABLE FOR PRODUCTION USE AND COULD BE HARMFUL TO YOUR FILES
+```
+* [Join the Google Group](https://groups.google.com/forum/#!forum/chromeos-onedrive-testers)
+* [Download the test client](https://chrome.google.com/webstore/detail/file-system-for-onedrive/ceklkpjapeaemmdchpmdkoegdnfmagba)
+
+
+## Dependencies
 
 * [Bootstrap] (http://getbootstrap.com)
 * [jQuery](http://jquery.com/)
 
 ## License
 
-All files are licensed under the BSD license. See the LICENSE file for details.
-All original source code is Copyright 2019 Yoichiro Tanaka
-Copyright 2019 Michael V Heath
+All files are licensed under the BSD license. See `LICENSE` for more details.  
+Original source code Copyright 2019 Yoichiro Tanaka.  
+Copyright 2019 Michael V Heath. 

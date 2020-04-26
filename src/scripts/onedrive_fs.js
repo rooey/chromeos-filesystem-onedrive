@@ -42,12 +42,12 @@ class OneDriveFS {
                                 const openedFilesLimit = settings.openedFilesLimit || '10';
                                 chrome.fileSystemProvider.mount({
                                     fileSystemId: fileSystemId,
-                                    displayName: FILE_SYSTEM_NAME + ' (' + userInfo.displayName +' - '+ driveInfo.type + ')',
+                                    displayName: FILE_SYSTEM_NAME + ' ' + driveInfo.type +' ('+ userInfo.displayName + ')',
                                     writable: true,
                                     openedFilesLimit: Number(openedFilesLimit)
                                 }, () => {
                                     this.registerMountedCredential(
-                                        driveInfo.id, onedriveClient.getAccessToken(), () => {
+                                        driveInfo.id, onedriveClient.getToken('accessToken'), onedriveClient.getToken('refreshToken'), () => {
                                         successCallback();
                                     });
                                 });
@@ -73,7 +73,7 @@ class OneDriveFS {
         this.getMountedCredential(fileSystemId, credential => {
             if (credential) {
                 const onedriveClient = new OneDriveClient(this);
-                onedriveClient.setAccessToken(credential.accessToken);
+                onedriveClient.setTokens(credential.accessToken, credential.refreshToken);
                 onedriveClient.setUid(credential.uid);
                 this.onedrive_client_map_[fileSystemId] = onedriveClient;
                 console.log('resume - end');
@@ -109,6 +109,7 @@ class OneDriveFS {
     }
 
     onGetMetadataRequested(onedriveClient, options, successCallback, errorCallback) {
+        console.log('Thumbnail='+options.thumbnail);
         const metadataCache = this.getMetadataCache(options.fileSystemId);
         const cache = metadataCache.get(options.entryPath);
         if (cache.directoryExists && cache.fileExists && !options.thumbnail) {
@@ -163,6 +164,7 @@ class OneDriveFS {
     }
 
     onWriteFileRequested(onedriveClient, options, successCallback, errorCallback) {
+        console.log('onwrite:' + options);
         this.getOpenedFile(options.fileSystemId, options.openRequestId, openedFile => {
             onedriveClient.writeFile(openedFile.filePath, options.data, options.offset, options.openRequestId, () => {
                 const metadataCache = this.getMetadataCache(options.fileSystemId);
@@ -291,12 +293,13 @@ class OneDriveFS {
         );
     }
 
-    registerMountedCredential(uid, accessToken, callback) {
+    registerMountedCredential(uid, accessToken, refreshToken, callback) {
         const fileSystemId = this.createFileSystemID(uid);
         chrome.storage.local.get('credentials', items => {
             const credentials = items.credentials || {};
             credentials[fileSystemId] = {
                 accessToken: accessToken,
+                refreshToken: refreshToken,
                 uid: uid
             };
             chrome.storage.local.set({
@@ -436,6 +439,8 @@ class OneDriveFS {
             this.metadata_cache_[fileSystemId] = metadataCache;
             console.log('getMetadataCache: Created. ' + fileSystemId);
         }
+        console.log('metadatacache is');
+        console.log(metadataCache);
         return metadataCache;
     };
 
@@ -511,7 +516,8 @@ class OneDriveFS {
             onedriveClient.readDirectory(entryPath, entries => {
                 const metadataCache = this.getMetadataCache(fileSystemId);
                 const currentList = entries;
-                const oldList = metadataCache.dir(entryPath) || {};
+                const oldList = metadataCache.directories_[entryPath] || {};
+                console.log('its all good now');
                 const nameSet = new Set();
                 for (let i = 0; i < currentList.length; i++) {
                     const current = currentList[i];
