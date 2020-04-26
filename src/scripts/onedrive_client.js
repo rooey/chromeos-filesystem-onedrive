@@ -565,6 +565,28 @@ class OneDriveClient {
         }, errorCallback).fetch();
     }
 
+    createUploadSession(filePath, successCallback, errorCallback) {
+        const data = this.jsonStringify({
+            path: filePath,
+            mode: 'add'
+        });
+        new HttpFetcher(this, 'createUploadSession', {
+            type: 'POST', 
+            url: 'https://graph.microsoft.com/v1.0/me/drive/items/:' + filePath + ':/content',
+            headers: {
+                'Authorization': 'Bearer ' + this.access_token_,
+                'Content-Type': 'application/json'
+            },
+            processData: false,
+            data: new ArrayBuffer(),
+            dataType: 'json'
+        }, data, _result => {
+            console.log('creating an upload session');
+            console.log(result);
+            const uploadUrl = result.uploadUrl;
+            successCallback(uploadUrl);
+        }, errorCallback).fetch();
+    }
 
     /*
     startUploadSession(successCallback, errorCallback) {
