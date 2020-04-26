@@ -424,7 +424,7 @@ class OneDriveClient {
                         console.log("WRITE FILE TO REMOTE", localFileName, fileEntry, file);
                         var reader = new FileReader();
                         reader.addEventListener("loadend", () => {
-                            this.sendSimpleUpload({
+                            this.sendUpload({
                                 filePath: filePath,
                                 data: reader.result
                             }, () => {
@@ -582,6 +582,15 @@ class OneDriveClient {
         }, errorCallback).fetch();
     }
 
+    sendUpload(options, successCallback, errorCallback) {
+        if ((options.data.length) > 4000000) {
+           this.sendLargeUpload(options, successCallback, errorCallback);
+        } else {
+           this.sendSimpleUpload(options, successCallback, errorCallback);
+        }
+        
+    }
+
     sendSimpleUpload(options, successCallback, errorCallback) {
         $.ajax({
             type: "PUT",
@@ -610,7 +619,7 @@ class OneDriveClient {
             var result = this.sendMoreLargeUploadBytes(uploadUrl, filesize, options, result.nextExpectedRanges, successCallback, errorCallback);
         };
        console.log(result);
-    };
+    }
 
     createUploadSession(filePath, successCallback, errorCallback) {
         const data = this.jsonStringify({
