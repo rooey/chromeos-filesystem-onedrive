@@ -602,6 +602,16 @@ class OneDriveClient {
         });
     };
 
+    sendLargeUpload(options, successCallback, errorCallback) {
+        const uploadUrl = this.createUploadSession(options.filepath, successCallback, errorCallback);
+        const filesize = options.data.length;
+        var result = this.sendFirstLargeUploadBytes(uploadUrl, filesize, successCallback, errorCallback);
+        while (result.nextExpectedRanges != null) {
+            var result = this.sendMoreLargeUploadBytes(uploadUrl, filesize, options, result.nextExpectedRanges, successCallback, errorCallback);
+        };
+       console.log(result);
+    };
+
     createUploadSession(filePath, successCallback, errorCallback) {
         const data = this.jsonStringify({
             path: filePath,
@@ -623,7 +633,73 @@ class OneDriveClient {
             const uploadUrl = result.uploadUrl;
             successCallback(uploadUrl);
         }, errorCallback).fetch();
-    }
+    };
+
+    sendFirstLargeUploadBytes(uploadUrl, filesize, options, successCallback, errorCallback) {
+        // if filesize is less than 320KiBytes, set length to filesize and set range appropriately
+        // else, set contentLength to the 320KiBytes required for uplaods
+        if (filesize < 327,680) {
+            const contentLength = filesize;
+            const contentRange = 'bytes 0-' + filesize + '/' + filesize;
+            const dataToSend = options.data
+        } else {
+            const contentLength = 327680;
+            const contentRange = 'bytes 0-327680/' + filesize
+            const dataToSend = options.data.slice(0,327680)
+        }
+        $.ajax({
+            type: "PUT",
+            url: uploadUrl,
+
+            dataType: "json",
+            headers: {
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/octet-stream"
+            },
+            processData: false,
+            data: dataToSend
+        }).done(result => {
+            console.log(result);
+            successCallback(nextExpectedRanges);
+        }).fail(error => {
+            console.log(error);
+            errorCallback("FAILED");
+        });
+    };
+
+    sendMoreLargeUploadBytes(uploadUrl, filesize, options, nextExpectedRanges, successCallback, errorCallback) {
+        // for nextExpectedRanges[0] add 327680
+        const contentRangeStart = nextExpectedRanges[0].substring(0, (nextExpectedRanges[0].length-1));
+        const contentRangeEndGuess = contentRangeStart + 327680;
+        if (filesize < contentRangeEndGuess) {
+            const contentRangeEnd = filesize;
+            const contentLength = contentRangeEnd-contentRangeStart+1
+        } else {
+            const contentRangeEnd = contentRangeEndGuess;
+            const contentLength = 327680;
+        }
+        const contentRange = 'bytes ' + contentRangeStart + '-' + contentRangeEnd + '/' + filesize
+
+        const dataToSend = options.data.slice(contentRangeStart,contentRangeEnd)
+
+        $.ajax({
+            type: "PUT",
+            url: uploadUrl,
+            dataType: "json",
+            headers: {
+                "Authorization": "Bearer " + this.access_token_,
+                "Content-Type": "application/octet-stream"
+            },
+            processData: false,
+            data: dataToSend
+        }).done(result => {
+            console.log(result);
+            successCallback(result);
+        }).fail(error => {
+            console.log(error);
+            errorCallback("FAILED");
+        });
+    };
 
     unmountByAccessTokenExpired() {
         this.onedrive_fs_.unmount(this, () => {
