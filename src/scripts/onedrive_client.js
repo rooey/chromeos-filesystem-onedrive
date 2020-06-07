@@ -4,7 +4,7 @@ let storedAppInfo = null;
 
 let appInfo = {
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
-    "clientSecret": "REPLACETHISWITHKEY",
+    "clientSecret": "KEYGOESINHERE",
     "redirectUrl": chrome.identity.getRedirectURL(""),
     "scopes": "files.readwrite.all offline_access user.read",
     "authServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
@@ -118,7 +118,7 @@ class OneDriveClient {
         this.refresh_token_ = this.getTokenFromCookie('refresh');
         var appInfo = this.getAppInfo();
         var fileSystemId = 'onedrivefs://' + this.uid_;
-        var thisvalue = this.onedrive_fs_.fileSystemId;
+        //var thisvalue = this.onedrive_fs_.fileSystemId;
 
         this.onedrive_fs_.getMountedCredential(fileSystemId, credential => {
             if (credential) {
@@ -775,11 +775,7 @@ class OneDriveClient {
             //console.log(data.error);
             successCallback();
         }, error => {
-            if (error.status === 202) {
-                successCallback();
-            } else {
-                errorCallback();
-            }
+            error.status === 202 ? successCallback() : errorCallback();
         }).fetch();
         //console.log('done copy');
     }
