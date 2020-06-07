@@ -31,7 +31,7 @@ class OneDriveClient {
     authorize(successCallback, errorCallback) {
         this.access_token_ = this.getTokenFromCookie('access');
         if (this.access_token_) {
-            console.log('already good');
+            //console.log('already good');
             successCallback();
         }
         else {
@@ -49,7 +49,7 @@ class OneDriveClient {
                 AUTH_URL += "&resource=" + encodeURIComponent(appInfo.resourceUri);
             }
     
-            console.log(AUTH_URL);
+            //console.log(AUTH_URL);
             chrome.identity.launchWebAuthFlow({
                 "url": AUTH_URL,
                 "interactive": true
@@ -60,8 +60,8 @@ class OneDriveClient {
                 }
                 if (redirectUrl) {
                     var codeInfo = this.getCodeFromUrl(redirectUrl);
-                    console.log("AJAX Start");
-                    console.log("CODE: "+codeInfo.code);
+                    //console.log("AJAX Start");
+                    //console.log("CODE: "+codeInfo.code);
                     // Get Token via POST
                     $.ajax({
                         type: "POST",
@@ -77,11 +77,11 @@ class OneDriveClient {
                             "&grant_type=authorization_code",
                         dataType: "text"
                     }).done(jsonData => {
-                        console.log("OK-jsonData");
-                        console.log(jsonData);
+                        //console.log("OK-jsonData");
+                        //console.log(jsonData);
                         var tokenInfo = JSON.parse(jsonData);
-                        console.log("tokenInfo");
-                        console.log(tokenInfo);
+                        //console.log("tokenInfo");
+                        //console.log(tokenInfo);
     
                         // Process Token - WEAREHERE
     
@@ -89,22 +89,22 @@ class OneDriveClient {
                         this.refresh_token_ = tokenInfo.refresh_token;
                         this.token_expiry_ = parseInt(tokenInfo.expires_in);
 
-                        console.log(this.access_token_);
+                        //console.log(this.access_token_);
     
                         if (this.access_token_)
                         {
                             //let driveInfo = this.getDriveData(successCallback,errorCallback);
                             //console.log(driveInfo);
                             this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-                            console.log("cookie has been set");
+                            //console.log("cookie has been set");
                             successCallback();
                         } else {
-                            console.log("This error is here. 1");
+                            //console.log("This error is here. 1");
                             errorCallback("failed to get an access token ");
                         }
                     }).fail(error => {
-                        console.log("AJAX Failed");
-                        console.log(error);
+                        //console.log("AJAX Failed");
+                        //console.log(error);
                         errorCallback(error);
                     })
                 } else {
@@ -120,22 +120,9 @@ class OneDriveClient {
         var fileSystemId = 'onedrivefs://' + this.uid_;
         var thisvalue = this.onedrive_fs_.fileSystemId;
 
-        console.log('thisvalue:');
-        console.log(thisvalue);
-
-        console.log('appInfo:');
-        console.log(appInfo);
-
-        console.log('fileSystemId:');
-        console.log(fileSystemId);
-
         this.onedrive_fs_.getMountedCredential(fileSystemId, credential => {
             if (credential) {
-                console.log('credentials:');
-                console.log(credential);
                 this.setTokens(credential.accessToken, credential.refreshToken);
-                //this.access_token_ = credential.accessToken;
-                //this.refresh_token_ = credential.refreshToken;
 
                 var data = "client_id=" + appInfo.clientId +
                     "&scope=files.readwrite.all offline_access user.read" +
@@ -144,8 +131,6 @@ class OneDriveClient {
                     "&grant_type=refresh_token" +
                     "&client_secret=" + appInfo.clientSecret;
 
-                console.log('dataXXFssL');
-                console.log(data);
                 new HttpFetcher(this, 'refreshToken', {
                     type: 'POST',
                     url: appInfo.tokenServiceUrl,
@@ -160,13 +145,6 @@ class OneDriveClient {
                     if (result) {
                         var tokenInfo = JSON.parse(result);
         
-                        console.log("OK-result");
-                        console.log(result);
-                        console.log("tokenInfo");
-                        console.log(tokenInfo);
-        
-                        // Process Token - WEAREHERE
-        
                         this.access_token_ = tokenInfo.access_token;
                         this.refresh_token_ = tokenInfo.refresh_token;
                         this.token_expiry_ = parseInt(tokenInfo.expires_in);
@@ -176,7 +154,6 @@ class OneDriveClient {
                             successCallback();
                         });
                         this.setCookie(this.access_token_, this.refresh_token_, this.token_expiry_);
-                        console.log("cookie has been set");
         
                         successCallback();
                     }
@@ -215,11 +192,7 @@ class OneDriveClient {
     getTokenFromCookie(type) {
         var cookies = document.cookie;
         var name = type + "Token=";
-        console.log('cookies:::');
-        console.log(cookies);
-        console.log(name);
         var start = cookies.indexOf(name);
-        console.log('I am getting Token type: ' + type);
         if (start >= 0) {
             start += name.length;
             var end = cookies.indexOf(';', start);
@@ -231,7 +204,6 @@ class OneDriveClient {
             }
 
             var value = cookies.substring(start, end);
-            console.log(type + 'Token=' + value);
             return value;
         }
 
@@ -241,13 +213,10 @@ class OneDriveClient {
     getCodeFromUrl(redirectUrl) {
         if (redirectUrl) {
             var codeResponse = redirectUrl.substring(redirectUrl.indexOf("?") + 1);
-            console.log(codeResponse);
     
             var codeInfo = JSON.parse(
                 '{' + codeResponse.replace(/([^=]+)=([^&]+)&?/g, '"$1":"$2",').slice(0,-1) + '}',
                 function(key, value) { return key === "" ? value : decodeURIComponent(value); });
-            console.log("codeInfo");
-            console.log(codeInfo);
             return codeInfo;
         }
         else {
@@ -785,7 +754,7 @@ class OneDriveClient {
         var targetDir = targetPath.substring(0, targetPath.lastIndexOf("/"));
         var data = {};
         if (sourceDir !== targetDir) {
-            console.log('source is not target');
+            //console.log('source is not target');
             data.parentReference = {
                 path: '/drive/root:' + targetDir
             };
@@ -801,9 +770,9 @@ class OneDriveClient {
             data: JSON.stringify(data),
             dataType: 'json'
         }, data, _result => {
-            console.log('donething');
-            console.log(_result);
-            console.log(data.error);
+            //console.log('donething');
+            //console.log(_result);
+            //console.log(data.error);
             successCallback();
         }, error => {
             if (error.status === 202) {
@@ -812,7 +781,7 @@ class OneDriveClient {
                 errorCallback();
             }
         }).fetch();
-        console.log('done copy');
+        //console.log('done copy');
     }
 
     doMoveEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
@@ -902,8 +871,8 @@ class OneDriveClient {
     continueReadDirectory(readDirectoryResult, entries, successCallback, errorCallback) {
         if (readDirectoryResult.has_more) {
             const fetchingContinueListFolderObject = this.createFetchingContinueListFolderObject(readDirectoryResult.cursor);
-            console.log('continuereaddir');
-            console.log(fetchingContinueListFolderObject);
+            //console.log('continuereaddir');
+            //console.log(fetchingContinueListFolderObject);
             const data = fetchingContinueListFolderObject.data;
             new HttpFetcher(this, 'continueReadDirectory', fetchingContinueListFolderObject, data, result => {
                 const contents = result.entries;
@@ -922,10 +891,10 @@ class OneDriveClient {
             path: path
         });
         var splitPath = path.split("/");
-        console.log('operation is below')
+        //console.log('operation is below')
         switch(operation){
             case 'create_folder':
-                console.log('making a directory');
+                //console.log('making a directory');
                 data = JSON.stringify({
                     name: splitPath.pop(),
                     folder: {}
@@ -934,11 +903,11 @@ class OneDriveClient {
                 operation = 'POST';
                 break;
             case 'delete':
-                console.log('deleting a file');
+                //console.log('deleting a file');
                 url += ":" + path;
                 break;
             default:
-                console.log('making something else');
+                //console.log('making something else');
                 url += ":" + path + ":/content";
                 operation = 'PUT'    
         }
@@ -980,7 +949,7 @@ class OneDriveClient {
             successCallback(entryMetadatas);
         } else {
             const content = contents[index];
-            console.log('createEntryMetadatas - isDirectory:' + ("folder" in content) + "YYY");
+            //console.log('createEntryMetadatas - isDirectory:' + ("folder" in content) + "YYY");
             const entryMetadata = {
                 isDirectory: ('folder' in content),
                 name: content.name,
