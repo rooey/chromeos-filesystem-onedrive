@@ -4,7 +4,7 @@ let storedAppInfo = null;
 
 let appInfo = {
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
-    "clientSecret": "SECRET GOES HERE",
+    "clientSecret": "REPLACETHISWITHKEY",
     "redirectUrl": chrome.identity.getRedirectURL(""),
     "scopes": "files.readwrite.all offline_access user.read",
     "authServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
@@ -780,10 +780,9 @@ class OneDriveClient {
     } */
 
     doCopyEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
-        var sourceLastSlashPos = sourcePath.lastIndexOf("/");
-        var sourceDir = sourcePath.substring(0, sourceLastSlashPos);
-        var targetLastSlashPos = targetPath.lastIndexOf("/");
-        var targetDir = targetPath.substring(0, targetLastSlashPos);
+	// Cut source and target directories to final path slash
+        var sourceDir = sourcePath.substring(0, sourcePath.lastIndexOf("/"));
+        var targetDir = targetPath.substring(0, targetPath.lastIndexOf("/"));
         var data = {};
         if (sourceDir !== targetDir) {
             console.log('source is not target');
@@ -817,12 +816,11 @@ class OneDriveClient {
     }
 
     doMoveEntry(operation, sourcePath, targetPath, successCallback, errorCallback) {
-        var sourceLastSlashPos = sourcePath.lastIndexOf("/");
-        var sourceDir = sourcePath.substring(0, sourceLastSlashPos);
-        var sourceName = sourcePath.substring(sourceLastSlashPos + 1);
-        var targetLastSlashPos = targetPath.lastIndexOf("/");
-        var targetDir = targetPath.substring(0, targetLastSlashPos);
-        var targetName = targetPath.substring(targetLastSlashPos + 1);
+	// Cut source and target directories to final path slash
+        var sourceDir = sourcePath.substring(0, sourcePath.lastIndexOf("/"));
+        var sourceName = sourcePath.substring(sourcePath.lastIndexOf("/") + 1);
+        var targetDir = targetPath.substring(0, targetPath.lastIndexOf("/"));
+        var targetName = targetPath.substring(targetPath.lastIndexOf("/") + 1);
         var data = {};
         if (sourceName !== targetName) {
             data.name = targetName;
