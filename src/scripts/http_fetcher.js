@@ -82,7 +82,7 @@ class HttpFetcher {
     }
 
     sendMessageToSentry(message, error, textStatus, errorThrown) {
-        if (Raven.isSetup()) {
+        /*if (Raven.isSetup()) {
             Raven.captureMessage(new Error(message), {
                 extra: {
                     error: error,
@@ -94,7 +94,8 @@ class HttpFetcher {
                     'app.version': chrome.runtime.getManifest().version
                 }
             });
-        }
+        }*/
+        console.log('sentrylognotsent:', message, error, textStatus, errorThrown);
     }
 
 };

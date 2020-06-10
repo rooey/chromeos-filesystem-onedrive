@@ -17,7 +17,7 @@ const background = () => {
         chrome.app.window.create('window.html', {
             outerBounds: {
                 width: 600,
-                height: 350
+                height: 420
             },
             resizable: false
         });

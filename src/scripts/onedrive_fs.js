@@ -477,14 +477,15 @@ class OneDriveFS {
     };
 
     sendMessageToSentry(message, extra) {
-        if (Raven.isSetup()) {
+        /*if (Raven.isSetup()) {
             Raven.captureMessage(new Error(message), {
                 extra: extra,
                 tags: {
                     'app.version': chrome.runtime.getManifest().version
                 }
             });
-        }
+        }*/
+        console.log('sentrylognotsent:', message, extra);
     };
 
     getWatchers(fileSystemId) {

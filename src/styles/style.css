@@ -46,12 +46,37 @@ div.container-fluid {
   position: absolute;
 }
 
+div.formBox {
+  float: left;
+  text-align: left;
+  font-size: 14px;
+}
+
 .footer div {
   color: white;
   font-size: 32px;
   margin-top: 5px;
   margin-left: 10px;
   cursor: pointer;
+}
+
+.footer div.box1 {
+  float: left;
+  text-align: right;
+  font-size: 14px;
+}
+
+.footer div.box2 {
+  float: right;
+  margin-right: 10px;
+  text-align: right;
+  font-size: 14px;
+  align-self: flex-end;
+}
+
+.footer div.privacyLink {
+  text-align: right;
+  font-size: 14px;
 }
 
 img.season {

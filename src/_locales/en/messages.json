@@ -39,6 +39,10 @@
     "message": "Opened files limit",
     "description": "Files limit configuration option."
   },
+  "bugConfigText": {
+    "message": "Automatic Bug Reporting",
+    "description": "Manage your data collection preferences."
+  },
   "mountHeader": {
     "message": "Mount your OneDrive",
     "description": "Header describing the server mount form."
@@ -58,5 +62,13 @@
   "mountFail": {
     "message": "Failed to mount.",
     "description": "Popup notifcation that informs the user that the system failed to mount a new instance with the credentials they provided."
+  },
+  "privacyLink": {
+    "message": "Privacy policy.",
+    "description": "How we manage your data, privacy and keep you secure."
+  },
+  "privacyLinkText": {
+    "message": "Enable or disabable automatic bug reporting",
+    "description": "Privacy options to enable and disable automatic bug reporting."
   }
 }
