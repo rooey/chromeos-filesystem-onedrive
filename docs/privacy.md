@@ -24,4 +24,4 @@ The good folks over [Sentry.io](https://sentry.io/) use data scrubbers which ens
 
 # I'm still not comfortable
 
-That makes us a little sad, but we do understand the predicament.  We're going to make the telemetry of data optional in a future update, but right now if you're not happy with this usage of information do NOT use this software.
+Don't worry! On non-developer builds, data collection is turned off by default.  If you want to double-check, press the gear icon on the application screen before mounting your OneDrive and check out "Automatic Bug Reporting" toggle.
