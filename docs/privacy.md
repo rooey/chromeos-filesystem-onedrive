@@ -25,3 +25,4 @@ The good folks over [Sentry.io](https://sentry.io/) use data scrubbers which ens
 # I'm still not comfortable
 
 Don't worry! On non-developer builds, data collection is turned off by default.  If you want to double-check, press the gear icon on the application screen before mounting your OneDrive and check out "Automatic Bug Reporting" toggle.
+![screenshot](https://raw.githubusercontent.com/rooey/chromeos-filesystem-onedrive/master/docs/onedrive-settings.png)
