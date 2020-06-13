@@ -23,7 +23,7 @@ class OneDriveFS {
         onedriveClient.authorize(() => {
             onedriveClient.getDriveData((driveInfo) => {
                 onedriveClient.getUserInfo((userInfo) => {
-                    onedriveClient.writeLog('debug', 'driveInfo', driveInfo);
+                    this.writeLog('debug', 'driveInfo', driveInfo);
 
                     const fileSystemId = this.createFileSystemID(driveInfo.id);
                     chrome.fileSystemProvider.getAll(fileSystems => {
@@ -67,14 +67,12 @@ class OneDriveFS {
     }
 
     resume(fileSystemId, successCallback, errorCallback) {
-        console.log('resume - start');
         this.getMountedCredential(fileSystemId, credential => {
             if (credential) {
                 const onedriveClient = new OneDriveClient(this);
                 onedriveClient.setTokens(credential.accessToken, credential.refreshToken);
                 onedriveClient.setUid(credential.uid);
                 this.onedrive_client_map_[fileSystemId] = onedriveClient;
-                console.log('resume - end');
                 successCallback();
             } else {
                 this.sendMessageToSentry('resume(): CREDENTIAL_NOT_FOUND', {
@@ -90,8 +88,7 @@ class OneDriveFS {
     }
 
     onUnmountRequested(options, successCallback, _errorCallback) {
-        console.log('onUnmountRequested');
-        console.log(options);
+        this.writeLog('debug', 'onUnmountRequested', options);
         const onedriveClient = this.getOneDriveClient(options.fileSystemId);
         this.doUnmount(onedriveClient, options.requestId, successCallback);
     }
@@ -107,16 +104,14 @@ class OneDriveFS {
     }
 
     onGetMetadataRequested(onedriveClient, options, successCallback, errorCallback) {
-        console.log('Thumbnail='+options.thumbnail);
+        this.writeLog('debug', 'Thumbnail', options.thumbnail);
         const metadataCache = this.getMetadataCache(options.fileSystemId);
         const cache = metadataCache.get(options.entryPath);
         if (cache.directoryExists && cache.fileExists && !options.thumbnail) {
-            console.log('metafunc-1');
             successCallback(this.trimMetadata(options, cache.metadata));
         } else {
             onedriveClient.getMetadata(
                 options.entryPath, entryMetadata => {
-                    console.log('metafunc-2');
                     successCallback(this.trimMetadata(options, entryMetadata));
                 }, errorCallback);
         }
@@ -131,7 +126,6 @@ class OneDriveFS {
             onedriveClient.readFile(
                 openedFile.filePath, options.offset, options.length, (data, hasMore) => {
                     successCallback(data, hasMore);
-                    console.log('onReadFileRequested - end');
                 }, errorCallback);
         });
     }
@@ -157,12 +151,11 @@ class OneDriveFS {
     }
 
     onCopyEntryRequested(onedriveClient, options, successCallback, errorCallback) {
-        console.log('oncopy - copyentry from fsjs');
         this.copyEntry('copyEntry', onedriveClient, options, successCallback, errorCallback);
     }
 
     onWriteFileRequested(onedriveClient, options, successCallback, errorCallback) {
-        console.log('onwrite:' + options);
+        this.writeLog('debug', arguments.callee, options);
         this.getOpenedFile(options.fileSystemId, options.openRequestId, openedFile => {
             onedriveClient.writeFile(openedFile.filePath, options.data, options.offset, options.openRequestId, () => {
                 const metadataCache = this.getMetadataCache(options.fileSystemId);
@@ -176,7 +169,6 @@ class OneDriveFS {
         onedriveClient.truncate(options.filePath, options.length, () => {
             const metadataCache = this.getMetadataCache(options.fileSystemId);
             metadataCache.remove(options.filePath);
-            console.log('onTruncateRequested - done');
             successCallback(false);
         }, errorCallback);
     }
@@ -213,7 +205,7 @@ class OneDriveFS {
     trimMetadata(options, metadata) {
         const result = {};
         if (options.isDirectory) {
-            console.log('trimMeta: ' + metadata.isDirectory);
+            this.writeLog('debug', arguments.callee, metadata.isDirectory);
             result.isDirectory = metadata.isDirectory;
         }
         if (options.name) {
@@ -241,16 +233,11 @@ class OneDriveFS {
     }
 
     copyEntry(operation, onedriveClient, options, successCallback, errorCallback) {
-        console.log('intheloop');
-        console.log(options);
+        this.writeLog('debug', arguments.callee, options);
         onedriveClient[operation](options.sourcePath, options.targetPath, () => {
-            console.log('intheloop-1');
             const metadataCache = this.getMetadataCache(options.fileSystemId);
-            console.log('intheloop-2');
             metadataCache.remove(options.sourcePath);
-            console.log('intheloop-3');
             metadataCache.remove(options.targetPath);
-            console.log(metadataCache);
             successCallback();
         }, errorCallback);
     }
@@ -264,7 +251,6 @@ class OneDriveFS {
     }
 
     doUnmount(onedriveClient, requestId, successCallback) {
-        console.log('doUnmount');
         this._doUnmount(
             onedriveClient.getUid(),
             successCallback
@@ -272,12 +258,11 @@ class OneDriveFS {
     }
 
     _doUnmount(uid, successCallback) {
-        console.log('_doUnmount');
         this.unregisterMountedCredential(
             uid,
             ()=> {
                 const fileSystemId = this.createFileSystemID(uid);
-                console.log(fileSystemId);
+                this.writeLog('debug', arguments.callee, fileSystemId);
                 delete this.onedrive_client_map_[fileSystemId];
                 this.deleteMetadataCache(fileSystemId);
                 this.deleteWatchers(fileSystemId);
@@ -333,7 +318,7 @@ class OneDriveFS {
                 this.resume(fileSystemId, () => {
                     callback(options, successCallback, errorCallback);
                 }, reason => {
-                    console.log('resume failed: ' + reason);
+                    this.writeLog('debug', 'resume failed', reason);
                     chrome.notifications.create('', {
                         type: 'basic',
                         title: 'File System for OneDrive',
@@ -344,6 +329,7 @@ class OneDriveFS {
                     this.getMountedCredential(fileSystemId, credential => {
                         if (credential) {
                             this._doUnmount(
+                                onedriveClient,
                                 credential.uid,
                                 () => {
                                     this.sendMessageToSentry('createEventHandler(): FAILED', {
@@ -353,7 +339,7 @@ class OneDriveFS {
                                     errorCallback('FAILED');
                                 });
                         } else {
-                            console.log('Credential for [' + fileSystemId + '] not found.');
+                            this.writeLog('debug', 'Credential not found', fileSystemId);
                             this.sendMessageToSentry('createEventHandler(): Credential for [' + fileSystemId + '] not found', {
                                 fileSystemId: fileSystemId
                             });
@@ -362,14 +348,12 @@ class OneDriveFS {
                     });
                 });
             } else {
-                this.sendMessageToSentry('It worked', 'hooray');
                 callback(options, successCallback, errorCallback);
             }
         };
     }
 
     assignEventHandlers() {
-        console.log('Start: assignEventHandlers');
         chrome.alarms.onAlarm.addListener(alarm => {
             if (alarm.name === 'onedrive_alarm') {
                 this.onAlarm(alarm);
@@ -381,14 +365,13 @@ class OneDriveFS {
         });
         chrome.fileSystemProvider.onUnmountRequested.addListener(
             (options, successCallback, errorCallback) => { // Unmount immediately
-                console.log('onUnmountRequested', options);
+                this.writeLog('debug', 'pre onUnmountRequested', options);
                 const fileSystemId = options.fileSystemId;
                 const onedriveClient = this.getOneDriveClient(fileSystemId);
                 if (!onedriveClient) {
                     this.resume(fileSystemId, () => {
                         this.onUnmountRequested(options, successCallback, errorCallback);
                     }, reason => {
-                        console.log('resume failed: ' + reason);
                         this.sendMessageToSentry('assignEventHandlers(): onUnmountRequested - FAILED', {
                             reason: reason
                         });
@@ -416,7 +399,7 @@ class OneDriveFS {
         ];
         const caller = (self, funcName) => {
             return (options, successCallback, errorCallback) => {
-                console.log(funcName, options);
+                this.writeLog('event', funcName, options);
                 const onedriveClient = this.getOneDriveClient(options.fileSystemId);
                 this[funcName](onedriveClient, options, successCallback, errorCallback);
             };
@@ -428,7 +411,6 @@ class OneDriveFS {
                 )
             );
         }
-        console.log('End: assignEventHandlers');
     }
 
     getMetadataCache(fileSystemId) {
@@ -436,15 +418,14 @@ class OneDriveFS {
         if (!metadataCache) {
             metadataCache = new MetadataCache();
             this.metadata_cache_[fileSystemId] = metadataCache;
-            console.log('getMetadataCache: Created. ' + fileSystemId);
         }
-        console.log('metadatacache is');
-        console.log(metadataCache);
+
+        this.writeLog('debug', 'metadataCache', metadataCache);
         return metadataCache;
     };
 
     deleteMetadataCache(fileSystemId) {
-        console.log('deleteMetadataCache: ' + fileSystemId);
+        this.writeLog('debug', arguments.callee, fileSystemId);
         delete this.metadata_cache_[fileSystemId];
     };
 
@@ -475,8 +456,19 @@ class OneDriveFS {
         });
     };
 
+    writeLog(messageType, message, payload) {
+        var appInfo = this.getAppInfo();
+
+        if ((messageType === 'debug') && (appInfo.debugMode !==false)) return;
+        console.log('[' + messageType + '] ' + message, payload);
+        return;
+    };
+
     sendMessageToSentry(message, extra) {
+        this.writeLog('sentry', message, extra);
         this.useOptions('useSentry', use => {
+            //ISSUE #57 @rooey
+            //Only send to sentry if user has opted-in
             if (!use) {
                 return;
             }
@@ -523,12 +515,11 @@ class OneDriveFS {
             if (!use) {
                 return;
             }
-            console.log('watchDirectory:', entryPath);
+            this.writeLog('debug', arguments.callee, entryPath);
             onedriveClient.readDirectory(entryPath, entries => {
                 const metadataCache = this.getMetadataCache(fileSystemId);
                 const currentList = entries;
                 const oldList = metadataCache.directories_[entryPath] || {};
-                console.log('its all good now');
                 const nameSet = new Set();
                 for (let i = 0; i < currentList.length; i++) {
                     const current = currentList[i];
@@ -540,12 +531,12 @@ class OneDriveFS {
                         const isMatchSize = current.size === old.size;
                         const isMatchModificationTime = current.modificationTime.getTime() === old.modificationTime.getTime();
                         if (!isBothDirectory && !(isMatchType && isMatchSize && isMatchModificationTime)) {
-                            console.log('Changed:', current.name);
+                            this.writeLog('debug', 'Changed:', current.name);
                             this.notifyEntryChanged(fileSystemId, entryPath, 'CHANGED', current.name);
                         }
                     } else {
                         // Added
-                        console.log('Added:', current.name);
+                        this.writeLog('debug', 'Added:', current.name);
                         this.notifyEntryChanged(fileSystemId, entryPath, 'CHANGED', current.name);
                     }
                     nameSet.add(current.name);
@@ -553,13 +544,12 @@ class OneDriveFS {
                 for (let oldName in oldList) {
                     if (!nameSet.has(oldName)) {
                         // Deleted
-                        console.log('Deleted:', oldName);
+                        this.writeLog('debug', 'Deleted:', oldName);
                         this.notifyEntryChanged(fileSystemId, entryPath, 'DELETED', oldName);
                     }
                 }
                 metadataCache.put(entryPath, currentList);
             }, (reason) => {
-                console.log(reason);
                 this.sendMessageToSentry('watchDirectory(): ' + reason, {
                     fileSystemId: fileSystemId
                 });
@@ -568,7 +558,8 @@ class OneDriveFS {
     }
 
     notifyEntryChanged(fileSystemId, directoryPath, changeType, entryPath) {
-        console.log(`notifyEntryChanged: ${directoryPath} ${entryPath} ${changeType}`);
+        this.writeLog('debug', arguments.callee, arguments);
+        //console.log(`notifyEntryChanged: ${directoryPath} ${entryPath} ${changeType}`);
         chrome.fileSystemProvider.notify({
             fileSystemId: fileSystemId,
             observedPath: directoryPath,

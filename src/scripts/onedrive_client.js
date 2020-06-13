@@ -1027,14 +1027,6 @@ class OneDriveClient {
         return '{' + entries.join(',') + '}';
     }
 
-    writeLog(messageType, message, payload) {
-        var appInfo = this.getAppInfo();
-
-        if ((messageType === 'debug') && (appInfo.debugMode !==false)) return;
-        console.log('[' + messageType + '] ' + message, payload);
-        return;
-    };
-
 };
 
 // Export
