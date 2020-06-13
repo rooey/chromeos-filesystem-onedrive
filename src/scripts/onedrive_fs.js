@@ -23,7 +23,8 @@ class OneDriveFS {
         onedriveClient.authorize(() => {
             onedriveClient.getDriveData((driveInfo) => {
                 onedriveClient.getUserInfo((userInfo) => {
-                    console.log(driveInfo);
+                    onedriveClient.writeLog('debug', 'driveInfo', driveInfo);
+
                     const fileSystemId = this.createFileSystemID(driveInfo.id);
                     chrome.fileSystemProvider.getAll(fileSystems => {
                         let mounted = false;
@@ -55,15 +56,12 @@ class OneDriveFS {
                         }
                     });
                 }, reason => {
-                    console.log(reason);
                     errorCallback(reason);
                 });
             }, reason => {
-                console.log(reason);
                 errorCallback(reason);
             });
         }, reason => {
-            console.log(reason);
             errorCallback(reason);
         });
     }
@@ -364,6 +362,7 @@ class OneDriveFS {
                     });
                 });
             } else {
+                this.sendMessageToSentry('It worked', 'hooray');
                 callback(options, successCallback, errorCallback);
             }
         };
@@ -477,16 +476,20 @@ class OneDriveFS {
     };
 
     sendMessageToSentry(message, extra) {
-        /*if (Raven.isSetup()) {
-            Raven.captureMessage(new Error(message), {
-                extra: extra,
-                tags: {
-                    'app.version': chrome.runtime.getManifest().version
-                }
-            });
-        }*/
-        console.log('sentrylognotsent:', message, extra);
-    };
+        this.useOptions('useSentry', use => {
+            if (!use) {
+                return;
+            }
+            if (Raven.isSetup()) {
+                Raven.captureMessage(new Error(message), {
+                    extra: extra,
+                    tags: {
+                        'app.version': chrome.runtime.getManifest().version
+                    }
+                });
+            }
+        });
+    }
 
     getWatchers(fileSystemId) {
         let watchers = this.watchers_[fileSystemId];
@@ -501,15 +504,22 @@ class OneDriveFS {
         delete this.watchers_[fileSystemId];
     }
 
-    useWatcher(callback) {
+    /*useWatcher(callback) {
         chrome.storage.local.get('settings', items => {
             const settings = items.settings || {};
             callback(settings.useWatcher || false);
         });
+    }*/
+
+    useOptions(options, callback) {
+        chrome.storage.local.get('settings', items => {
+            const settings = items.settings || {};
+            callback(settings[options] || false);
+        });
     }
 
     watchDirectory(fileSystemId, onedriveClient, entryPath) {
-        this.useWatcher(use => {
+        this.useOptions('useWatcher', use => {
             if (!use) {
                 return;
             }

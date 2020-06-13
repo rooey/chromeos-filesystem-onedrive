@@ -3,6 +3,8 @@
 let storedAppInfo = null;
 
 let appInfo = {
+    // Use set debugMode to true to enable verbose logging (alpha builds)
+    "debugMode": true,
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
     "clientSecret": "KEYGOESINHERE",
     "redirectUrl": chrome.identity.getRedirectURL(""),
@@ -31,7 +33,6 @@ class OneDriveClient {
     authorize(successCallback, errorCallback) {
         this.access_token_ = this.getTokenFromCookie('access');
         if (this.access_token_) {
-            //console.log('already good');
             successCallback();
         }
         else {
@@ -1025,6 +1026,14 @@ class OneDriveClient {
         });
         return '{' + entries.join(',') + '}';
     }
+
+    writeLog(messageType, message, payload) {
+        var appInfo = this.getAppInfo();
+
+        if ((messageType === 'debug') && (appInfo.debugMode !==false)) return;
+        console.log('[' + messageType + '] ' + message, payload);
+        return;
+    };
 
 };
 

@@ -52,12 +52,17 @@ class MountWindow {
             });
         }
         document.querySelector('#useWatcherOn').addEventListener('click', () => {
-            this.onChangedUseWatcher(true);
+            this.onChangedUseOption('useWatcher', true);
         });
         document.querySelector('#useWatcherOff').addEventListener('click', () => {
-            this.onChangedUseWatcher(false);
+            this.onChangedUseOption('useWatcher', false);
         });
-    }
+        document.querySelector('#useSentryOn').addEventListener('click', () => {
+            this.onChangedUseOption('useSentry', true);
+        });
+        document.querySelector('#useSentryOff').addEventListener('click', () => {
+            this.onChangedUseOption('useSentry', false);
+        });    }
 
     onClickedBtnMount(evt) {
         const btnMount = document.querySelector('#btnMount');
@@ -126,8 +131,10 @@ class MountWindow {
             const settings = items.settings || {};
             const openedFilesLimit = settings.openedFilesLimit || '10';
             const useWatcher = settings.useWatcher || false;
+            const useSentry = settings.useSentry || false;
             document.querySelector('#openedFilesLimit' + openedFilesLimit).checked = true;
             document.querySelector('#useWatcher' + (useWatcher ? 'On' : 'Off')).checked = true;
+            document.querySelector('#useSentry' + (useSentry ? 'On' : 'Off')).checked = true;
             $('#settingsDialog').modal('show');
         });
     }
@@ -144,10 +151,20 @@ class MountWindow {
         });
     }
 
-    onChangedUseWatcher(use) {
+    /*onChangedUseWatcher(use) {
         chrome.storage.local.get('settings', items => {
             const settings = items.settings || {};
             settings.useWatcher = use;
+            chrome.storage.local.set({settings: settings}, () => {
+                console.log('Saving settings done.');
+            });
+        });
+    }*/
+
+    onChangedUseOption(options, use) {
+        chrome.storage.local.get('settings', items => {
+            const settings = items.settings || {};
+            settings[options] = use;
             chrome.storage.local.set({settings: settings}, () => {
                 console.log('Saving settings done.');
             });
