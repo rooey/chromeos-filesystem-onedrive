@@ -1,5 +1,8 @@
 'use strict';
 
+//FIX #58 We shouldn't have to set this twice @rooey
+const HTTP_DEBUG_ENABLED = true;
+
 class HttpFetcher {
 
     // Constructor
@@ -34,7 +37,7 @@ class HttpFetcher {
             console.debug(error);
             this.errorCallback_('NOT_FOUND');
         } else if (status === 202){
-            console.log('Accepted copy');
+            this.writeLog('debug', 'handleError', 'accepted copy');
             this.successCallback_();
         }else if (status === 416) {
             console.debug(error);
@@ -43,13 +46,13 @@ class HttpFetcher {
             console.error(error);
             // Access token has already expired or unauthorized. Attempt to refresh.
             this.onedrive_client_.refreshToken(() => {
-                console.log('token refreshed');
+                this.writeLog('debug', 'handleError', 'token refreshed');
                 this.successCallback_();
             }, this.errorCallback_('INVALID_OPERATION'));
         } else if (status === 429) {
             const retryAfter = error.getResponseHeader('Retry-After');
             if (retryAfter) {
-                console.log('Retry to send request(' + this.caller_ + ') after ' + retryAfter + 's');
+                this.writeLog('debug', 'handleError', 'Retry to send request(' + this.caller_ + ') after ' + retryAfter + 's');
                 setTimeout(() => {
                     this.fetch();
                 }, retryAfter * 1000);
@@ -80,12 +83,15 @@ class HttpFetcher {
             this.errorCallback_('FAILED');
         }
     }
+
+    //FIXME #59 writeLog function should be universal @rooey
     writeLog(messageType, message, payload) {
-        if ((messageType === 'debug') && (DEBUG_ENABLED !==true)) return;
+        if ((messageType === 'debug') && (HTTP_DEBUG_ENABLED !==true)) return;
         console.log('[' + messageType + '] ' + message, payload);
         return;
     };
 
+    //FIXME #60 sendMessageToSentry should be universal
     sendMessageToSentry(message, error, textStatus, errorThrown) {
         this.useOptions('useSentry', use => {
             //ISSUE #57 @rooey
@@ -110,6 +116,7 @@ class HttpFetcher {
         });
     }
 
+    //FIXME #61 useOptions function should be universal
     useOptions(options, callback) {
         chrome.storage.local.get('settings', items => {
             const settings = items.settings || {};

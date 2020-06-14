@@ -3,8 +3,8 @@
   "name": "__MSG_appName__",
   "short_name": "__MSG_shortName__",
   "description": "__MSG_appDescription__",
-  "version": "3.0.0.36134",
-  "version_name": "3.0.0 Alpha - Build 36134",
+  "version": "3.0.0.36136",
+  "version_name": "3.0.0 Alpha - Build 36136",
   "default_locale": "en",
   "permissions": [
     "identity",

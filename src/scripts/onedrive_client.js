@@ -219,7 +219,7 @@ class OneDriveClient {
             return codeInfo;
         }
         else {
-            console.log("failed to receive codeInfo");
+            this.onedrive_fs_.writeLog('debug', 'getCodeFromUrl', 'failed to receive codeInfo');
         }
     };
 
@@ -255,7 +255,7 @@ class OneDriveClient {
                     successCallback();
                 });
             }).fail(error => {
-                console.log(error);
+                this.onedrive_fs_.writeLog('debug', 'unauthorize', error);
                 errorCallback(error);
             })
         } else {
@@ -284,7 +284,6 @@ class OneDriveClient {
     }
 
     getUserInfo(successCallback, errorCallback) {
-        console.log("I got this far at least...");
         new HttpFetcher(this, 'getuserInfo', {
             type: 'GET',
             url: 'https://graph.microsoft.com/v1.0/me',
@@ -310,10 +309,9 @@ class OneDriveClient {
     }
 
     getMetadata(path, successCallback, errorCallback) {
-        console.log('PATH: ');
-        console.log(path);
+        this.onedrive_fs_.writeLog('debug', 'getMetadata path:', path);
+
         if (path === '/') {
-            console.log('path is === /');
             successCallback({
                 isDirectory: true,
                 name: '',
@@ -324,7 +322,7 @@ class OneDriveClient {
         }
         const fetchingMetadataObject = this.createFetchingMetadataObject(path);
         new HttpFetcher(this, 'getMetadata', fetchingMetadataObject, fetchingMetadataObject.data, result => {
-            console.log('metadataobject - isDirectory:' + ('folder' in result) + 'XXX');
+            this.onedrive_fs_.writeLog('debug', 'metadataobject - isDirectory:', ('folder' in result) + 'XXX');
             const entryMetadata = {
                 isDirectory: ('folder' in result),
                 name: result.name,
@@ -364,7 +362,7 @@ class OneDriveClient {
         const fetchingListFolderObject = this.createFetchingListFolderObject(path === '/' ? '' : path);
         new HttpFetcher(this, 'readDirectory', fetchingListFolderObject, fetchingListFolderObject.data, result => {
             const contents = result.value;
-            console.log(contents);
+            this.onedrive_fs_.writeLog('debug', 'readDirectory', contents);
             this.createEntryMetadatas(contents, 0, [], entries => {
                 this.continueReadDirectory(result, entries, successCallback, errorCallback);
             }, errorCallback);
@@ -415,7 +413,7 @@ class OneDriveClient {
     readFile(filePath, offset, length, successCallback, errorCallback) {
         const data = JSON.stringify({path: filePath});
         if (offset > 0) {
-            console.log("readFile:: Offset reads are not currently supported");
+            this.onedrive_fs_.writeLog('debug', 'readFie', 'Offset reads are not currently supported');
             errorCallback();
             return;
         }
