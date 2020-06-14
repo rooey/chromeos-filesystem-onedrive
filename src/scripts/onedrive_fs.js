@@ -139,21 +139,21 @@ class OneDriveFS {
     }
 
     onCreateDirectoryRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.createOrDeleteEntry(
-            'createDirectory', options.directoryPath, onedriveClient, options, successCallback, errorCallback);
+        this.updateEntry(
+            'createDirectory', onedriveClient, options, successCallback, errorCallback);
     }
 
     onDeleteEntryRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.createOrDeleteEntry(
-            'deleteEntry', options.entryPath, onedriveClient, options, successCallback, errorCallback);
+        this.updateEntry(
+            'deleteEntry', onedriveClient, options, successCallback, errorCallback);
     }
 
     onMoveEntryRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.moveEntry('moveEntry', onedriveClient, options, successCallback, errorCallback);
+        this.updateEntry('moveEntry', onedriveClient, options, successCallback, errorCallback);
     }
 
     onCopyEntryRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.copyEntry('copyEntry', onedriveClient, options, successCallback, errorCallback);
+        this.updateEntry('copyEntry', onedriveClient, options, successCallback, errorCallback);
     }
 
     onWriteFileRequested(onedriveClient, options, successCallback, errorCallback) {
@@ -176,8 +176,8 @@ class OneDriveFS {
     }
 
     onCreateFileRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.createOrDeleteEntry(
-            'createFile', options.filePath, onedriveClient, options, successCallback, errorCallback);
+        this.updateEntry(
+            'createFile', onedriveClient, options, successCallback, errorCallback);
     }
 
     onAddWatcherRequested(onedriveClient, options, successCallback, _errorCallback) {
@@ -210,46 +210,42 @@ class OneDriveFS {
             this.writeLog('debug', this.name, metadata.isDirectory);
             result.isDirectory = metadata.isDirectory;
         }
-        if (options.name) {
-            result.name = metadata.name;
-        }
-        if (options.size) {
-            result.size = metadata.size;
-        }
-        if (options.modificationTime) {
-            result.modificationTime = metadata.modificationTime;
-        }
-        if (options.thumbnail) {
-            result.thumbnail = metadata.thumbnail;
-        }
+        if (options.name) result.name = metadata.name;
+        if (options.size) result.size = metadata.size;
+        if (options.modificationTime) result.modificationTime = metadata.modificationTime;
+        if (options.thumbnail) result.thumbnail = metadata.thumbnail;
         return result;
     }
 
-    moveEntry(operation, onedriveClient, options, successCallback, errorCallback) {
-        onedriveClient[operation](options.sourcePath, options.targetPath, () => {
-            const metadataCache = this.getMetadataCache(options.fileSystemId);
-            metadataCache.remove(options.sourcePath);
-            metadataCache.remove(options.targetPath);
-            successCallback();
-        }, errorCallback);
-    }
+    updateEntry(operation, onedriveClient, options, successCallback, errorCallback) {
+        var path = null;
+        this.writeLog('debug', 'updateEntry - ' + operation, options);
+        switch (operation) {
+            case 'createDirectory':
+                path = options.directoryPath;
+                // fall through
 
-    copyEntry(operation, onedriveClient, options, successCallback, errorCallback) {
-        this.writeLog('debug', this.name, options);
-        onedriveClient[operation](options.sourcePath, options.targetPath, () => {
-            const metadataCache = this.getMetadataCache(options.fileSystemId);
-            metadataCache.remove(options.sourcePath);
-            metadataCache.remove(options.targetPath);
-            successCallback();
-        }, errorCallback);
-    }
+            case 'deleteEntry':
+                path = options.entryPath;
+                // fall through
 
-    createOrDeleteEntry(operation, path, onedriveClient, options, successCallback, errorCallback) {
-        onedriveClient[operation](path, () => {
-            const metadataCache = this.getMetadataCache(options.fileSystemId);
-            metadataCache.remove(path);
-            successCallback();
-        }, errorCallback);
+            case 'createFile':
+                path = options.filePath;
+
+                onedriveClient[operation](path, () => {
+                    const metadataCache = this.getMetadataCache(options.fileSystemId);
+                    metadataCache.remove(path);
+                    successCallback();
+                }, errorCallback);
+                break;
+            default:
+                onedriveClient[operation](options.sourcePath, options.targetPath, () => {
+                    const metadataCache = this.getMetadataCache(options.fileSystemId);
+                    metadataCache.remove(options.sourcePath);
+                    metadataCache.remove(options.targetPath);
+                    successCallback();
+                }, errorCallback);
+        }
     }
 
     doUnmount(onedriveClient, requestId, successCallback) {
@@ -293,14 +289,6 @@ class OneDriveFS {
         });
     }
 
-    getMountedCredential(fileSystemId, callback) {
-        chrome.storage.local.get('credentials', items => {
-            const credentials = items.credentials || {};
-            const credential = credentials[fileSystemId];
-            callback(credential);
-        });
-    }
-
     unregisterMountedCredential(uid, callback) {
         const fileSystemId = this.createFileSystemID(uid);
         chrome.storage.local.get('credentials', items => {
@@ -309,6 +297,14 @@ class OneDriveFS {
             chrome.storage.local.set({
                 credentials: credentials
             }, callback);
+        });
+    }
+
+    getMountedCredential(fileSystemId, callback) {
+        chrome.storage.local.get('credentials', items => {
+            const credentials = items.credentials || {};
+            const credential = credentials[fileSystemId];
+            callback(credential);
         });
     }
 
