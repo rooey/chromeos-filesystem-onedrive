@@ -879,6 +879,7 @@ class OneDriveClient {
     }
 
     createOrDeleteEntry(operation, path, successCallback, errorCallback) {
+        this.onedrive_fs_.writeLog('debug', 'client-createOrDeleteEntry-' + operation, path);
         var url = "https://graph.microsoft.com/v1.0/me/drive/root";
         var data = JSON.stringify({
             path: path

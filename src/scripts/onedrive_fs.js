@@ -218,26 +218,20 @@ class OneDriveFS {
     }
 
     updateEntry(operation, onedriveClient, options, successCallback, errorCallback) {
-        var path = null;
         this.writeLog('debug', 'updateEntry - ' + operation, options);
         switch (operation) {
             case 'createDirectory':
-                path = options.directoryPath;
-                // fall through
+                this.doOperation (operation, options.directoryPath, onedriveClient, options, successCallback, errorCallback);
+                break;
 
             case 'deleteEntry':
-                path = options.entryPath;
-                // fall through
+                this.doOperation (operation, options.entryPath, onedriveClient, options, successCallback, errorCallback);
+                break;
 
             case 'createFile':
-                path = options.filePath;
-
-                onedriveClient[operation](path, () => {
-                    const metadataCache = this.getMetadataCache(options.fileSystemId);
-                    metadataCache.remove(path);
-                    successCallback();
-                }, errorCallback);
+                this.doOperation (operation, options.filePath, onedriveClient, options, successCallback, errorCallback);
                 break;
+
             default:
                 onedriveClient[operation](options.sourcePath, options.targetPath, () => {
                     const metadataCache = this.getMetadataCache(options.fileSystemId);
@@ -246,6 +240,16 @@ class OneDriveFS {
                     successCallback();
                 }, errorCallback);
         }
+    }
+
+    doOperation(operation, path, onedriveClient, options, successCallback, errorCallback) {
+        this.writeLog('debug', 'updateEntry - fallthrough', path);
+        onedriveClient[operation](path, () => {
+            const metadataCache = this.getMetadataCache(options.fileSystemId);
+            metadataCache.remove(path);
+            this.writeLog('debug', 'updateEntry - setpath', path);
+            successCallback();
+        }, errorCallback);
     }
 
     doUnmount(onedriveClient, requestId, successCallback) {
