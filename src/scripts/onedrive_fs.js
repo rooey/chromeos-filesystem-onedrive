@@ -1,6 +1,8 @@
 'use strict';
 
 // Constants
+// Use set DEBUG_ENABLED to true to enable verbose logging (alpha builds)
+const DEBUG_ENABLED = true;
 
 const FILE_SYSTEM_ID = 'onedrivefs';
 const FILE_SYSTEM_NAME = 'OneDrive';
@@ -155,7 +157,7 @@ class OneDriveFS {
     }
 
     onWriteFileRequested(onedriveClient, options, successCallback, errorCallback) {
-        this.writeLog('debug', arguments.callee, options);
+        this.writeLog('debug', this.name, options);
         this.getOpenedFile(options.fileSystemId, options.openRequestId, openedFile => {
             onedriveClient.writeFile(openedFile.filePath, options.data, options.offset, options.openRequestId, () => {
                 const metadataCache = this.getMetadataCache(options.fileSystemId);
@@ -205,7 +207,7 @@ class OneDriveFS {
     trimMetadata(options, metadata) {
         const result = {};
         if (options.isDirectory) {
-            this.writeLog('debug', arguments.callee, metadata.isDirectory);
+            this.writeLog('debug', this.name, metadata.isDirectory);
             result.isDirectory = metadata.isDirectory;
         }
         if (options.name) {
@@ -233,7 +235,7 @@ class OneDriveFS {
     }
 
     copyEntry(operation, onedriveClient, options, successCallback, errorCallback) {
-        this.writeLog('debug', arguments.callee, options);
+        this.writeLog('debug', this.name, options);
         onedriveClient[operation](options.sourcePath, options.targetPath, () => {
             const metadataCache = this.getMetadataCache(options.fileSystemId);
             metadataCache.remove(options.sourcePath);
@@ -262,7 +264,7 @@ class OneDriveFS {
             uid,
             ()=> {
                 const fileSystemId = this.createFileSystemID(uid);
-                this.writeLog('debug', arguments.callee, fileSystemId);
+                this.writeLog('debug', this.name, fileSystemId);
                 delete this.onedrive_client_map_[fileSystemId];
                 this.deleteMetadataCache(fileSystemId);
                 this.deleteWatchers(fileSystemId);
@@ -399,7 +401,7 @@ class OneDriveFS {
         ];
         const caller = (self, funcName) => {
             return (options, successCallback, errorCallback) => {
-                this.writeLog('event', funcName, options);
+                this.writeLog('debug', funcName, options);
                 const onedriveClient = this.getOneDriveClient(options.fileSystemId);
                 this[funcName](onedriveClient, options, successCallback, errorCallback);
             };
@@ -425,7 +427,7 @@ class OneDriveFS {
     };
 
     deleteMetadataCache(fileSystemId) {
-        this.writeLog('debug', arguments.callee, fileSystemId);
+        this.writeLog('debug', this.name, fileSystemId);
         delete this.metadata_cache_[fileSystemId];
     };
 
@@ -457,21 +459,19 @@ class OneDriveFS {
     };
 
     writeLog(messageType, message, payload) {
-        var appInfo = this.getAppInfo();
-
-        if ((messageType === 'debug') && (appInfo.debugMode !==false)) return;
+        if ((messageType === 'debug') && (DEBUG_ENABLED !==true)) return;
         console.log('[' + messageType + '] ' + message, payload);
         return;
     };
 
     sendMessageToSentry(message, extra) {
-        this.writeLog('sentry', message, extra);
         this.useOptions('useSentry', use => {
             //ISSUE #57 @rooey
             //Only send to sentry if user has opted-in
             if (!use) {
                 return;
             }
+            this.writeLog('sentry', message, extra);
             if (Raven.isSetup()) {
                 Raven.captureMessage(new Error(message), {
                     extra: extra,
@@ -515,7 +515,7 @@ class OneDriveFS {
             if (!use) {
                 return;
             }
-            this.writeLog('debug', arguments.callee, entryPath);
+            this.writeLog('debug', this.name, entryPath);
             onedriveClient.readDirectory(entryPath, entries => {
                 const metadataCache = this.getMetadataCache(fileSystemId);
                 const currentList = entries;
@@ -558,8 +558,8 @@ class OneDriveFS {
     }
 
     notifyEntryChanged(fileSystemId, directoryPath, changeType, entryPath) {
-        this.writeLog('debug', arguments.callee, arguments);
-        //console.log(`notifyEntryChanged: ${directoryPath} ${entryPath} ${changeType}`);
+        this.writeLog('debug', this.name, `notifyEntryChanged: ${directoryPath} ${entryPath} {changeType}${changeType}`);
+        //console.log(`notifyEntryChanged: ${directoryPath} ${entryPath} {changeType}${changeType}`);
         chrome.fileSystemProvider.notify({
             fileSystemId: fileSystemId,
             observedPath: directoryPath,

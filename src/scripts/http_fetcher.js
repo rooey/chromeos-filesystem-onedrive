@@ -17,9 +17,9 @@ class HttpFetcher {
 
     fetch() {
         $.ajax(this.request_).done(result => {
-            console.log('httpfetcher');
-            console.log(this.request_);
-            console.log(result);
+            this.writeLog('debug', 'HttpFetcher', this.request);
+            this.writeLog('debug', 'HttpFetcher', result);
+            this.sendMessageToSentry('test', 'none', 'fish', 'nothing');
             this.successCallback_(result);
         }).fail((error, textStatus, errorThrown) => {
             this.handleError(error, textStatus, errorThrown);
@@ -80,24 +80,42 @@ class HttpFetcher {
             this.errorCallback_('FAILED');
         }
     }
+    writeLog(messageType, message, payload) {
+        if ((messageType === 'debug') && (DEBUG_ENABLED !==true)) return;
+        console.log('[' + messageType + '] ' + message, payload);
+        return;
+    };
 
     sendMessageToSentry(message, error, textStatus, errorThrown) {
-        /*if (Raven.isSetup()) {
-            Raven.captureMessage(new Error(message), {
-                extra: {
-                    error: error,
-                    textStatus: textStatus,
-                    errorThrown: errorThrown,
-                    data: this.data_
-                },
-                tags: {
-                    'app.version': chrome.runtime.getManifest().version
-                }
-            });
-        }*/
-        console.log('sentrylognotsent:', message, error, textStatus, errorThrown);
+        this.useOptions('useSentry', use => {
+            //ISSUE #57 @rooey
+            //Only send to sentry if user has opted-in
+            if (!use) {
+                return;
+            }
+            this.writeLog('sentry', message, error + ' ' + textStatus + ' ' + errorThrown);
+            if (Raven.isSetup()) {
+                Raven.captureMessage(new Error(message), {
+                    extra: {
+                        error: error,
+                        textStatus: textStatus,
+                        errorThrown: errorThrown,
+                        data: this.data_
+                    },
+                    tags: {
+                        'app.version': chrome.runtime.getManifest().version
+                    }
+                });
+            }
+        });
     }
 
+    useOptions(options, callback) {
+        chrome.storage.local.get('settings', items => {
+            const settings = items.settings || {};
+            callback(settings[options] || false);
+        });
+    }
 };
 
 // Export

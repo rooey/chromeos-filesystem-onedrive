@@ -3,8 +3,6 @@
 let storedAppInfo = null;
 
 let appInfo = {
-    // Use set debugMode to true to enable verbose logging (alpha builds)
-    "debugMode": true,
     "clientId": "7bee6942-63fb-4fbd-88d6-00394941de08",
     "clientSecret": "KEYGOESINHERE",
     "redirectUrl": chrome.identity.getRedirectURL(""),
@@ -266,7 +264,7 @@ class OneDriveClient {
     }
 
     getDriveData(successCallback, errorCallback) {
-        console.log("I got this far at least...");
+        this.onedrive_fs_.writeLog('debug', 'getDriveData', 'I got this far at least...');
         new HttpFetcher(this, 'getDriveData', {
             type: 'GET',
             url: 'https://graph.microsoft.com/v1.0/me/drive',
