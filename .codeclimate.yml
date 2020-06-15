@@ -4,3 +4,5 @@ plugins:
     checks:
       complexity:
         enabled: false
+  fixme:
+    enabled: true
