@@ -62,7 +62,14 @@ class MountWindow {
         });
         document.querySelector('#useSentryOff').addEventListener('click', () => {
             this.onChangedUseOption('useSentry', false);
-        });    }
+        });
+        document.querySelector('#useOfficeOnlineOn').addEventListener('click', () => {
+            this.onChangedUseOption('useOfficeOnline', true);
+        });
+        document.querySelector('#useOfficeOnlineOff').addEventListener('click', () => {
+            this.onChangedUseOption('useOfficeOnline', false);
+        });
+    }
 
     onClickedBtnMount(evt) {
         const btnMount = document.querySelector('#btnMount');
@@ -132,9 +139,11 @@ class MountWindow {
             const openedFilesLimit = settings.openedFilesLimit || '10';
             const useWatcher = settings.useWatcher || false;
             const useSentry = settings.useSentry || false;
+            const useOfficeOnline = settings.useOfficeOnline || false;
             document.querySelector('#openedFilesLimit' + openedFilesLimit).checked = true;
             document.querySelector('#useWatcher' + (useWatcher ? 'On' : 'Off')).checked = true;
             document.querySelector('#useSentry' + (useSentry ? 'On' : 'Off')).checked = true;
+            document.querySelector('#useOfficeOnline' + (useOfficeOnline ? 'On' : 'Off')).checked = true;
             $('#settingsDialog').modal('show');
         });
     }

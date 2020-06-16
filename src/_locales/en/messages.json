@@ -15,9 +15,17 @@
     "message": "OneDrive for ChromeOS",
     "description": "Header describing the server mount form."
   },
+  "columnTitle1": {
+    "message": "Client Settings",
+    "description": "Client configuration settings."
+  },
+  "columnTitle2": {
+    "message": "Data Preferences",
+    "description": "Data preferences, security & privacy."
+  },
   "configManageSectionText": {
-    "message": "Your Microsoft Account",
-    "description": "Microsoft Account management."
+    "message": "Privacy & Security",
+    "description": "Account management & privacy links."
   },
   "configManageLinkText": {
     "message": "Manage Linked Applications  ",
@@ -40,8 +48,12 @@
     "description": "Files limit configuration option."
   },
   "bugConfigText": {
-    "message": "Automatic Bug Reporting",
+    "message": "Automatic Developer Feedback",
     "description": "Manage your data collection preferences."
+  },
+  "officeConfigText": {
+    "message": "Use Office Online",
+    "description": "Open office docs in Office Online."
   },
   "mountHeader": {
     "message": "Mount your OneDrive",
