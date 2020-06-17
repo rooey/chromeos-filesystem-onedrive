@@ -3,12 +3,14 @@
   "name": "__MSG_appName__",
   "short_name": "__MSG_shortName__",
   "description": "__MSG_appDescription__",
-  "version": "3.0.0.36150",
-  "version_name": "3.0.0 Alpha - Build 36150",
+  "version": "3.0.0.36160",
+  "version_name": "3.0.0 Alpha - Build 36160",
   "default_locale": "en",
   "permissions": [
     "identity",
     "fileSystemProvider",
+    "fileSystem",
+    "browser",
     "storage",
     "notifications",
     "alarms",
@@ -37,6 +39,21 @@
     "source": "network",
     "multiple_mounts": true,
     "watchable": true
+  },
+  "file_handlers": {
+    "msoffice": {
+      "types": [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      ],
+      "extensions": [
+        "xlsx"
+      ]
+    },
+    "onedriveweblink": {
+      "extensions": [
+        "onedriveweblink"
+      ]
+    }
   },
   "minimum_chrome_version": "49"
 }
