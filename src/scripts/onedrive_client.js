@@ -11,7 +11,7 @@ let appInfo = {
     "tokenServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 };
 
-let officeOnlineMimeTypes = [
+let supportedMimeTypes = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
     'application/vnd.ms-word.document.macroEnabled.12',
@@ -29,7 +29,7 @@ let officeOnlineMimeTypes = [
     'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
     'application/vnd.ms-powerpoint.template.macroEnabled.12',
     'application/vnd.ms-powerpoint.slideshow.macroEnabled.12'
-]
+];
 
 const CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
 
@@ -442,12 +442,12 @@ class OneDriveClient {
     readFile(filePath, offset, length, successCallback, errorCallback) {
         const data = JSON.stringify({path: filePath});
         const range = 'bytes=' + offset + '-' + (offset + length - 1);
-        if (offset > 0) {
+        /*if (offset > 0) {
             this.onedrive_fs_.writeLog('debug', 'readFie', 'Offset reads are not currently supported');
-            errorCallback('EOF');
+            errorCallback;
             //errorCallback();
             return;
-        }
+        }*/
         const webLinkSearch = /\.onedriveweblink$/;
         if (webLinkSearch.test(filePath)) {
             new HttpFetcher(this, 'readFile', {
@@ -995,18 +995,18 @@ class OneDriveClient {
             this.onedrive_fs_.writeLog('debug', 'content', content);
             var entryMetadata = {};
 
-            if (!('folder' in content) && (content.file.mimeType in officeOnlineMimeTypes)) {
-                this.onedrive_fs_.writeLog('debug', 'match', content.file.mimeType);
+            if (('file' in content) && ('mimeType' in content.file)) {
+                const mimeType = content.file.mimeType;
+                if (supportedMimeTypes.some(r=> mimeType.includes(r)));
             }
-
-            if ((('package' in content) || (!('folder' in content) && (content.file.mimeType in officeOnlineMimeTypes))) && (!('@microsoft.graph.downloadUrl' in content))) {
+            if ((((!('folder' in content)) && ('file' in content)) && 'mimeType' in content.file) || (('package' in content) && (!('@microsoft.graph.downloadUrl' in content)))) {
+                this.onedrive_fs_.writeLog('debug', 'mimeType-match', content);                
                 var contentName = content.name;
 
                 if ('package' in content) contentName += ".onedriveweblink";
                 entryMetadata = {
                     isDirectory: false,
                     name: contentName,
-                    mimeType: 'text/html',
                     size: 4096,
                     modificationTime: content.lastModifiedDateTime ? new Date(content.lastModifiedDateTime) : new Date()
                 }

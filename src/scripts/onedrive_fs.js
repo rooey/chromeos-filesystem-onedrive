@@ -127,6 +127,10 @@ class OneDriveFS {
         this.getOpenedFile(options.fileSystemId, options.openRequestId, openedFile => {
             onedriveClient.readFile(
                 openedFile.filePath, options.offset, options.length, (data, hasMore) => {
+                    console.log('data');
+                    console.log(data);
+                    console.log('hasmore');
+                    console.log(hasMore);
                     successCallback(data, hasMore);
                 }, errorCallback);
         });
