@@ -11,6 +11,26 @@ let appInfo = {
     "tokenServiceUrl": "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 };
 
+let officeOnlineMimeTypes = [
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    'application/vnd.ms-word.document.macroEnabled.12',
+    'application/vnd.ms-word.template.macroEnabled.12',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
+    'application/vnd.ms-excel.sheet.macroEnabled.12',
+    'application/vnd.ms-excel.template.macroEnabled.12',
+    'application/vnd.ms-excel.addin.macroEnabled.12',
+    'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.openxmlformats-officedocument.presentationml.template',
+    'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+    'application/vnd.ms-powerpoint.addin.macroEnabled.12',
+    'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+    'application/vnd.ms-powerpoint.template.macroEnabled.12',
+    'application/vnd.ms-powerpoint.slideshow.macroEnabled.12'
+]
+
 const CHUNK_SIZE = 1024 * 1024 * 4; // 4MB
 
 class OneDriveClient {
@@ -974,10 +994,6 @@ class OneDriveClient {
             //console.log('createEntryMetadatas - isDirectory:' + ("folder" in content) + "YYY");
             this.onedrive_fs_.writeLog('debug', 'content', content);
             var entryMetadata = {};
-
-            var officeOnlineMimeTypes = {
-                xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            }
 
             if (!('folder' in content) && (content.file.mimeType in officeOnlineMimeTypes)) {
                 this.onedrive_fs_.writeLog('debug', 'match', content.file.mimeType);
