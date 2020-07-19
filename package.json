@@ -15,7 +15,6 @@
     "gulp": "^4.0.0",
     "gulp-eslint": "^5.0.0",
     "gulp-zip": "^4.2.0",
-    "lodash": ">=4.17.19",
     "rimraf": "^2.6.3"
   },
   "engines": {
