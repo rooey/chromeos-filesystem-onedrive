@@ -357,6 +357,17 @@ class OneDriveClient {
             }
         }, errorCallback).fetch();
     }
+  
+    function getOfficeOnlineUrl(fileId, fileExtension) {
+      const officeOnlineExtensions = ["docx", "doc", "pptx", "ppt", "xlsx", "xls"];
+      const extensionIndex = officeOnlineExtensions.indexOf(fileExtension);
+      if (extensionIndex !== -1) {
+        const appNames = ["Word", "Word", "PowerPoint", "PowerPoint", "Excel", "Excel"];
+        return `https://office.live.com/start/${appNames[extensionIndex]}.aspx?src=${encodeURIComponent(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/content`)}`;
+      } else {
+        return null;
+      }
+    }
 
     readDirectory(path, successCallback, errorCallback) {
         const fetchingListFolderObject = this.createFetchingListFolderObject(path === '/' ? '' : path);
@@ -370,8 +381,13 @@ class OneDriveClient {
     }
 
     openFile(filePath, requestId, mode, successCallback, _errorCallback) {
+      const isOfficeOnlineFile = getOfficeOnlineUrl(file.id, fileExtension);
+      if (isOfficeOnlineFile) {
+        window.open(isOfficeOnlineFile, "_blank");
+      } else {
         this.writeRequestMap[requestId] = {};
-        successCallback();
+      }
+      successCallback();
     };
 
     closeFile(filePath, openRequestId, mode, successCallback, errorCallback) {
