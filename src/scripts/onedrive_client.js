@@ -580,28 +580,63 @@ class OneDriveClient {
             extPattern.test(metadata.name);
     }
         
-    startUploadSession(filePath, successCallback, errorCallback) {
-        const reqData = this.jsonStringify({
-            close: false
+    async startUploadSession(fileEntry, filePath) {
+      // Get the access token
+      const accessToken = await this.getAccessToken();
+
+      // Create a new upload session for the file
+      const response = await fetch(`https://graph.microsoft.com/v1.0/drive/root:/${filePath}:/createUploadSession`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          item: {
+            '@microsoft.graph.conflictBehavior': 'replace'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create upload session: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const uploadUrl = data.uploadUrl;
+
+      // Split the file into chunks
+      const CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB
+      const file = await fileEntry.file();
+      const fileSize = file.size;
+      const chunkCount = Math.ceil(fileSize / CHUNK_SIZE);
+
+      let start = 0;
+      let end = 0;
+      let contentRange = '';
+
+      // Upload each chunk using the put method
+      for (let i = 0; i < chunkCount; i++) {
+        end = Math.min(start + CHUNK_SIZE, fileSize) - 1;
+        contentRange = `bytes ${start}-${end}/${fileSize}`;
+
+        const chunk = file.slice(start, end + 1);
+
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Range': contentRange
+          },
+          body: chunk
         });
-        console.log('STARTINGUPLOADSESSION');
-        console.log(this);
-        new HttpFetcher(this, 'startUploadSession', {
-            type: 'POST',
-            url: "https://graph.microsoft.com/v1.0/me/drive/root:/" + filePath + ":/createUploadSession",
-            headers: {
-                'Authorization': 'Bearer ' + this.access_token_,
-                'Content-Type': 'application/json'
-            },
-            item: {
-                "@odata.type": "microsoft.graph.driveItemUploadableProperties",
-                "@microsoft.graph.conflictBehavior": "replace"
-            },
-        }, reqData, result => {
-            console.log('creating upload session');
-            console.log(result);
-            successCallback(result.uploadUrl);
-        }, errorCallback).fetch();
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload chunk: ${response.status} ${response.statusText}`);
+        }
+
+        start += CHUNK_SIZE;
+      }
     }
 
     sendContents(options, successCallback, errorCallback) {
